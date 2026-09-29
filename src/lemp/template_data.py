@@ -807,7 +807,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  LEMP_RUNTIME_SPEC: git+https://github.com/SEMO-diX/lemp.git@main
+  LEMP_RUNTIME_SPEC: git+https://github.com/SEMO-diX/lemp.git@4e1e6e798c4ed209dcd9f6b7ec7fabe2fd467875
 
 jobs:
   gate:
