@@ -421,6 +421,99 @@ def status(root: Path, *, fetch_tags: bool = True) -> dict[str, Any]:
     }
 
 
+def _checkpoint_paths(root: Path, canonical_sha: str) -> list[str]:
+    paths: set[str] = set()
+    commands = [
+        ("diff", "--name-only", f"{canonical_sha}..HEAD"),
+        ("diff", "--name-only"),
+        ("diff", "--name-only", "--cached"),
+        ("ls-files", "--others", "--exclude-standard"),
+    ]
+    for args in commands:
+        result = _git(root, *args, check=False)
+        if result.returncode == 0:
+            paths.update(line.strip() for line in result.stdout.splitlines() if line.strip())
+    return sorted(paths)
+
+
+def _managed_memory_path(rel: str) -> bool:
+    return any(pattern.fullmatch(rel) for pattern in MANAGED_MEMORY_PATTERNS)
+
+
+def checkpoint(
+    root: Path,
+    *,
+    fetch_tags: bool = True,
+    allow_main: bool = False,
+    check_only: bool = False,
+    commit_message: str | None = None,
+) -> dict[str, Any]:
+    root = root.resolve()
+    tag, canonical_checkpoint, canonical_sha = resolve_canonical(
+        root, fetch_tags=fetch_tags
+    )
+    branch = _git(root, "branch", "--show-current").stdout.strip()
+    if not branch:
+        raise LEMPError("checkpoint requires a named candidate branch")
+    if branch == "main" and not allow_main:
+        raise LEMPError("refusing checkpoint finalization on main; use a candidate branch")
+
+    head = _git(root, "rev-parse", "HEAD").stdout.strip()
+    ancestor = _git(root, "merge-base", "--is-ancestor", canonical_sha, head, check=False)
+    if ancestor.returncode != 0:
+        raise LEMPError("candidate HEAD does not descend from canonical snapshot")
+
+    manifest = _yaml(root / "MANIFEST.yaml")
+    candidate_checkpoint = manifest.get("checkpoint")
+    cm = CHECKPOINT_RE.fullmatch(str(canonical_checkpoint))
+    nm = CHECKPOINT_RE.fullmatch(str(candidate_checkpoint))
+    if cm is None or nm is None or int(nm.group(1)) != int(cm.group(1)) + 1:
+        raise LEMPError(
+            f"candidate checkpoint must advance exactly one step from {canonical_checkpoint}"
+        )
+
+    validation = validate(root)
+    if validation.integrity == "FAIL":
+        raise LEMPError("candidate integrity failed: " + "; ".join(validation.errors))
+
+    paths = _checkpoint_paths(root, canonical_sha)
+    unmanaged = [rel for rel in paths if not _managed_memory_path(rel)]
+    if unmanaged:
+        raise LEMPError("checkpoint contains unmanaged paths: " + ", ".join(unmanaged))
+    for rel in paths:
+        _safe(root, rel)
+
+    payload = {
+        "result": "VALIDATED" if check_only else "PENDING_COMMIT",
+        "branch": branch,
+        "canonical": {
+            "tag": tag,
+            "checkpoint": canonical_checkpoint,
+            "sha": canonical_sha,
+        },
+        "candidate_checkpoint": candidate_checkpoint,
+        "candidate_paths": paths,
+        "integrity": validation.integrity,
+    }
+    if check_only:
+        return payload
+    if not paths:
+        raise LEMPError("checkpoint finalization requires prepared durable changes")
+
+    _git(root, "add", "--", *paths)
+    message = commit_message or f"LEMP checkpoint {candidate_checkpoint}"
+    _git(root, "commit", "-m", message)
+    candidate_sha = _git(root, "rev-parse", "HEAD").stdout.strip()
+    payload.update(
+        {
+            "result": "CANDIDATE_COMMITTED",
+            "candidate_sha": candidate_sha,
+            "promotion": "PENDING_CANONICAL_GATE",
+        }
+    )
+    return payload
+
+
 def format_payload(payload: dict[str, Any], fmt: str) -> str:
     if fmt == "json":
         return json.dumps(payload, indent=2, ensure_ascii=False)
