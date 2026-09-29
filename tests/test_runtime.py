@@ -3,6 +3,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import yaml
+
 from lemp.runtime import checkpoint, init_memory, status, sync, validate
 
 
@@ -60,7 +62,8 @@ def test_checkpoint_finalizes_managed_candidate(tmp_path: Path) -> None:
     manifest.write_text(
         manifest.read_text(encoding="utf-8")
         .replace("memory_version: 1", "memory_version: 2")
-        .replace("checkpoint: CP000001", "checkpoint: CP000002", 1),
+        .replace("checkpoint: CP000001", "checkpoint: CP000002", 1)
+        .replace("latest_session: S000001", "latest_session: S000002"),
         encoding="utf-8",
     )
 
@@ -78,6 +81,43 @@ def test_checkpoint_finalizes_managed_candidate(tmp_path: Path) -> None:
         current.read_text(encoding="utf-8").replace(
             "checkpoint: CP000001", "checkpoint: CP000002"
         ),
+        encoding="utf-8",
+    )
+
+    session = root / "sessions" / "S000002.md"
+    session.write_text(
+        """---
+id: S000002
+date: 2026-09-29
+previous: S000001
+checkpoint_after: CP000002
+state_version_after: 1
+---
+
+# Session S000002
+
+Synthetic checkpoint progression test.
+""",
+        encoding="utf-8",
+    )
+
+    archive_record = root / "archive" / "S000002-source.md"
+    archive_record.write_text(
+        "# Source Recovery — S000002\n\nSynthetic checkpoint progression source.\n",
+        encoding="utf-8",
+    )
+    archive_index_path = root / "archive" / "INDEX.yaml"
+    archive_index = yaml.safe_load(archive_index_path.read_text(encoding="utf-8"))
+    archive_index["records"].append(
+        {
+            "session": "S000002",
+            "path": "archive/S000002-source.md",
+            "record_type": "source-recovery",
+            "status": "immutable-preferred",
+        }
+    )
+    archive_index_path.write_text(
+        yaml.safe_dump(archive_index, sort_keys=False),
         encoding="utf-8",
     )
 
