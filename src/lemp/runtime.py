@@ -6,8 +6,9 @@ import re
 import subprocess
 import tarfile
 import tempfile
+
+from .template_data import TEMPLATE_FILES
 from dataclasses import dataclass
-from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -276,18 +277,10 @@ def init_memory(destination: Path) -> Path:
     if destination.exists() and any(destination.iterdir()):
         raise LEMPError(f"destination is not empty: {destination}")
     destination.mkdir(parents=True, exist_ok=True)
-    source = resources.files("lemp").joinpath("template")
-
-    def copy_node(src: Any, dst: Path) -> None:
-        if src.is_dir():
-            dst.mkdir(parents=True, exist_ok=True)
-            for child in src.iterdir():
-                copy_node(child, dst / child.name)
-        else:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            dst.write_bytes(src.read_bytes())
-
-    copy_node(source, destination)
+    for rel, content in TEMPLATE_FILES.items():
+        target = _safe(destination, rel)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
     return destination
 
 
