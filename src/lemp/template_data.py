@@ -393,7 +393,7 @@ The point of this topic is to make fresh-conversation recovery visible and easy 
 
 The fabricated demo is at MVP planning stage. No real project or personal information is present.
 """,
-    "schemas/applicability.schema.json": """{
+    "schemas/applicability.schema.json": r"""{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/lemp/schemas/applicability.schema.json",
   "title": "LEMP v1.1 Applicability Index",
@@ -597,7 +597,7 @@ The fabricated demo is at MVP planning stage. No real project or personal inform
   }
 }
 """,
-    "schemas/context-contract.schema.json": """{
+    "schemas/context-contract.schema.json": r"""{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.invalid/lemp/schemas/context-contract.schema.json",
   "title": "LEMP v1.1 Context Contract",
