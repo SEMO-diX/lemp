@@ -32,3 +32,8 @@ It does not make a broadly privileged GitHub connector harmless. Repository acce
 The generated synthetic memory repository includes `.github/workflows/lemp-canonical.yml`. On a validated push to `main`, it checks checkpoint sequencing, runs a pinned Gitleaks history scan, prepares an annotated `lemp-valid/CPxxxxxx` tag bound to the exact commit and workflow run/attempt, and pushes that tag.
 
 The preview workflow installs the public runtime from an immutable verified commit SHA rather than a mutable branch. The first tagged software release should replace that preview commit pin with the corresponding immutable release tag.
+
+
+## Runtime source portability
+
+`lemp init` renders the generated Canonical Gate with an immutable verified reference-runtime commit by default. A fork or alternate distribution can supply `--runtime-spec` to render another pip-compatible immutable source without editing the generated workflow by hand.
