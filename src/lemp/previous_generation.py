@@ -137,11 +137,6 @@ def validate_against_previous(
 
     previous_sha = _git(root, "rev-list", "-n", "1", previous_tag).stdout.strip()
     candidate_sha = _git(root, "rev-parse", "HEAD").stdout.strip()
-    if previous_sha == candidate_sha:
-        raise PreviousGenerationError(
-            "candidate HEAD is already the previous canonical SHA"
-        )
-
     ancestor = _git(
         root,
         "merge-base",
