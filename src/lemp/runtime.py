@@ -13,7 +13,7 @@ from .control_plane import validate_control_plane
 from .path_rules import allowed_memory_path
 from .provenance import validate_provenance
 from .previous_generation import PreviousGenerationError, validate_against_previous
-from .template_data import TEMPLATE_FILES
+from .template_data import DEFAULT_RUNTIME_SPEC, RUNTIME_SPEC_PLACEHOLDER, TEMPLATE_FILES
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -286,15 +286,25 @@ def validate(root: Path) -> Validation:
     )
 
 
-def init_memory(destination: Path) -> Path:
+def init_memory(
+    destination: Path,
+    *,
+    runtime_spec: str = DEFAULT_RUNTIME_SPEC,
+) -> Path:
     destination = destination.resolve()
+    if not isinstance(runtime_spec, str) or not runtime_spec.strip():
+        raise LEMPError("runtime_spec must be a non-empty string")
+    if "\n" in runtime_spec or "\r" in runtime_spec:
+        raise LEMPError("runtime_spec must be a single line")
     if destination.exists() and any(destination.iterdir()):
         raise LEMPError(f"destination is not empty: {destination}")
     destination.mkdir(parents=True, exist_ok=True)
+    encoded_runtime_spec = json.dumps(runtime_spec)
     for rel, content in TEMPLATE_FILES.items():
         target = _safe(destination, rel)
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        rendered = content.replace(RUNTIME_SPEC_PLACEHOLDER, encoded_runtime_spec)
+        target.write_text(rendered, encoding="utf-8")
     return destination
 
 
