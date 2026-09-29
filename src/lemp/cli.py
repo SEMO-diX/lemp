@@ -25,12 +25,14 @@ def parser() -> argparse.ArgumentParser:
     cp.add_argument("--allow-main", action="store_true")
     cp.add_argument("--check-only", action="store_true")
     cp.add_argument("--message")
+    cp.add_argument("--offline-attestation", action="store_true")
 
     for name in ("sync", "status"):
         cmd = sub.add_parser(name)
         cmd.add_argument("--root", default=".")
         cmd.add_argument("--format", choices=["text", "json"], default="text")
         cmd.add_argument("--no-fetch-tags", action="store_true")
+        cmd.add_argument("--offline-attestation", action="store_true")
 
     return p
 
@@ -48,7 +50,11 @@ def main(argv: list[str] | None = None) -> int:
             print(format_payload(payload, args.format))
             return 0 if result.integrity != "FAIL" else 1
         if args.command == "sync":
-            payload = sync(Path(args.root), fetch_tags=not args.no_fetch_tags)
+            payload = sync(
+                Path(args.root),
+                fetch_tags=not args.no_fetch_tags,
+                offline_attestation=args.offline_attestation,
+            )
             print(format_payload(payload, args.format))
             return 0
         if args.command == "checkpoint":
@@ -58,11 +64,16 @@ def main(argv: list[str] | None = None) -> int:
                 allow_main=args.allow_main,
                 check_only=args.check_only,
                 commit_message=args.message,
+                offline_attestation=args.offline_attestation,
             )
             print(format_payload(payload, args.format))
             return 0
         if args.command == "status":
-            payload = status(Path(args.root), fetch_tags=not args.no_fetch_tags)
+            payload = status(
+                Path(args.root),
+                fetch_tags=not args.no_fetch_tags,
+                offline_attestation=args.offline_attestation,
+            )
             print(format_payload(payload, args.format))
             return 0
     except LEMPError as exc:
