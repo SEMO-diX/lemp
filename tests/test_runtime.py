@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from lemp.runtime import init_memory, status, sync, validate
+from lemp.runtime import checkpoint, init_memory, status, sync, validate
 
 
 def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -50,3 +50,38 @@ def test_unvalidated_head_does_not_replace_canonical(tmp_path: Path) -> None:
     payload = sync(root, fetch_tags=False)
     canonical_state = next(x["content"] for x in payload["working_context"] if x["path"] == "STATE.md")
     assert "Candidate-only note" not in canonical_state
+
+
+def test_checkpoint_finalizes_managed_candidate(tmp_path: Path) -> None:
+    root = fixture(tmp_path)
+    git(root, "switch", "-c", "candidate/cp000002")
+
+    manifest = root / "MANIFEST.yaml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8")
+        .replace("memory_version: 1", "memory_version: 2")
+        .replace("checkpoint: CP000001", "checkpoint: CP000002", 1),
+        encoding="utf-8",
+    )
+
+    state = root / "STATE.md"
+    state.write_text(
+        state.read_text(encoding="utf-8")
+        .replace("Checkpoint: CP000001", "Checkpoint: CP000002", 1)
+        .replace("MANIFEST checkpoint expected: `CP000001`", "MANIFEST checkpoint expected: `CP000002`")
+        .replace("This file Checkpoint: `CP000001`", "This file Checkpoint: `CP000002`"),
+        encoding="utf-8",
+    )
+
+    current = root / "state" / "CURRENT.yaml"
+    current.write_text(
+        current.read_text(encoding="utf-8").replace(
+            "checkpoint: CP000001", "checkpoint: CP000002"
+        ),
+        encoding="utf-8",
+    )
+
+    result = checkpoint(root, fetch_tags=False)
+    assert result["result"] == "CANDIDATE_COMMITTED"
+    assert result["candidate_checkpoint"] == "CP000002"
+    assert result["promotion"] == "PENDING_CANONICAL_GATE"
