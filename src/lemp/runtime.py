@@ -172,6 +172,8 @@ def validate(root: Path) -> Validation:
             errors.append(f"{rel}: contract is not active")
         for req in contract.get("required") or []:
             if isinstance(req, str):
+                if req not in required_context:
+                    required_context.append(req)
                 try:
                     if not _safe(root, req).is_file():
                         errors.append(f"{rel}: missing required path: {req}")
