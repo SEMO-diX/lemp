@@ -332,4 +332,115 @@ The point of this topic is to make fresh-conversation recovery visible and easy 
 
 The fabricated demo is at MVP planning stage. No real project or personal information is present.
 """,
+    ".github/workflows/lemp-canonical.yml": """name: LEMP Canonical Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: lemp-canonical-promotion
+  cancel-in-progress: false
+
+env:
+  LEMP_RUNTIME_SPEC: git+https://github.com/SEMO-diX/lemp.git@main
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Check out complete memory history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install LEMP reference runtime
+        run: python -m pip install --disable-pip-version-check "$LEMP_RUNTIME_SPEC"
+
+      - name: Validate memory structure
+        run: lemp validate --root . --format json
+
+      - name: Validate checkpoint sequence
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git tag --list 'lemp-valid/CP*' | grep -q .; then
+            lemp checkpoint --root . --allow-main --check-only --format json
+          else
+            python - <<'PY'
+          import yaml
+          manifest = yaml.safe_load(open("MANIFEST.yaml", encoding="utf-8")) or {}
+          if manifest.get("checkpoint") != "CP000001":
+              raise SystemExit("first canonical checkpoint must be CP000001")
+          print("PASS: bootstrap checkpoint CP000001")
+          PY
+
+  promote:
+    needs: gate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Check out validated commit with tags
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install LEMP reference runtime
+        run: python -m pip install --disable-pip-version-check "$LEMP_RUNTIME_SPEC"
+
+      - name: Prepare and push exact canonical tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force --prune --prune-tags --tags origin
+          result="$(lemp prepare-tag --root . --format json)"
+          echo "$result"
+          action="$(python -c 'import json,sys; print(json.load(sys.stdin)["action"])' <<<"$result")"
+          tag="$(python -c 'import json,sys; print(json.load(sys.stdin)["tag"])' <<<"$result")"
+          expected_ref="$(python -c 'import json,sys; print(json.load(sys.stdin).get("expected_remote_ref") or "")' <<<"$result")"
+          case "$action" in
+            CREATE)
+              git push origin "refs/tags/$tag"
+              ;;
+            KEEP_VALID)
+              echo "$tag already has a successful attestation."
+              ;;
+            RECOVER_FAILED)
+              test -n "$expected_ref"
+              git push --force-with-lease="refs/tags/$tag:$expected_ref" origin "refs/tags/$tag"
+              ;;
+            *)
+              echo "Unknown promotion action: $action"
+              exit 1
+              ;;
+          esac
+
+      - name: Smoke-test promoted snapshot locally
+        run: lemp sync --root . --offline-attestation --format json
+""",
 }
