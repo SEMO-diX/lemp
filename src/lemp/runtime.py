@@ -12,6 +12,7 @@ from .attestation import AttestationError, RemoteVerificationUnavailable, verify
 from .control_plane import validate_control_plane
 from .path_rules import allowed_memory_path
 from .provenance import validate_provenance
+from .previous_generation import PreviousGenerationError, validate_against_previous
 from .template_data import TEMPLATE_FILES
 from dataclasses import dataclass
 from pathlib import Path
@@ -521,6 +522,15 @@ def checkpoint(
     if validation.integrity == "FAIL":
         raise LEMPError("candidate integrity failed: " + "; ".join(validation.errors))
 
+    try:
+        previous_generation = validate_against_previous(
+            root,
+            fetch_tags=fetch_tags,
+            offline_attestation=offline_attestation,
+        )
+    except PreviousGenerationError as exc:
+        raise LEMPError(f"previous-generation validation failed: {exc}") from exc
+
     paths = _checkpoint_paths(root, canonical_sha)
     unmanaged = [rel for rel in paths if not _managed_memory_path(rel)]
     if unmanaged:
@@ -539,6 +549,7 @@ def checkpoint(
         "candidate_checkpoint": candidate_checkpoint,
         "candidate_paths": paths,
         "integrity": validation.integrity,
+        "previous_generation": previous_generation,
     }
     if check_only:
         return payload
