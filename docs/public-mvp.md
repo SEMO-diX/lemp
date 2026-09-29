@@ -21,7 +21,6 @@ Prove that a fresh user can use GitHub as durable LLM memory without depending o
 - a guarantee that connector permissions are sandboxed by LEMP
 - fully automated checkpoint finalization in the public CLI
 - authoritative online verification of GitHub Actions attestation from the public CLI
-- a selected public software license
 
 ## Release gate
 
