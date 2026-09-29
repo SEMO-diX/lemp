@@ -7,6 +7,7 @@ import subprocess
 import tarfile
 import tempfile
 
+from .attestation import AttestationError, RemoteVerificationUnavailable, verify_attested_tag
 from .path_rules import allowed_memory_path
 from .template_data import TEMPLATE_FILES
 from dataclasses import dataclass
@@ -334,7 +335,12 @@ def _local_attestation(root: Path, tag: str, checkpoint: str, sha: str) -> None:
         raise LEMPError(f"{tag} attestation workflow mismatch")
 
 
-def resolve_canonical(root: Path, *, fetch_tags: bool = True) -> tuple[str, str, str]:
+def resolve_canonical(
+    root: Path,
+    *,
+    fetch_tags: bool = True,
+    offline_attestation: bool = False,
+) -> tuple[str, str, str]:
     root = root.resolve()
     if fetch_tags:
         _refresh_tags(root)
@@ -362,11 +368,19 @@ def resolve_canonical(root: Path, *, fetch_tags: bool = True) -> tuple[str, str,
         if not isinstance(manifest, dict) or manifest.get("checkpoint") != checkpoint:
             continue
         try:
-            _local_attestation(root, tag, checkpoint, sha)
-        except LEMPError:
+            verify_attested_tag(
+                root,
+                tag,
+                checkpoint,
+                sha,
+                verify_remote=not offline_attestation,
+            )
+        except RemoteVerificationUnavailable as exc:
+            raise LEMPError(str(exc)) from exc
+        except AttestationError:
             continue
         return tag, checkpoint, sha
-    raise LEMPError("no valid canonical tag survived local verification")
+    raise LEMPError("no valid canonical tag survived attestation verification")
 
 
 def _extract_snapshot(root: Path, sha: str, destination: Path) -> None:
@@ -381,9 +395,18 @@ def _extract_snapshot(root: Path, sha: str, destination: Path) -> None:
         archive.extractall(destination, filter="data")
 
 
-def sync(root: Path, *, fetch_tags: bool = True) -> dict[str, Any]:
+def sync(
+    root: Path,
+    *,
+    fetch_tags: bool = True,
+    offline_attestation: bool = False,
+) -> dict[str, Any]:
     root = root.resolve()
-    tag, checkpoint, sha = resolve_canonical(root, fetch_tags=fetch_tags)
+    tag, checkpoint, sha = resolve_canonical(
+        root,
+        fetch_tags=fetch_tags,
+        offline_attestation=offline_attestation,
+    )
     with tempfile.TemporaryDirectory(prefix="lemp-sync-") as raw:
         snapshot = Path(raw)
         _extract_snapshot(root, sha, snapshot)
@@ -403,13 +426,22 @@ def sync(root: Path, *, fetch_tags: bool = True) -> dict[str, Any]:
             "required_context": result.required_context,
             "required_invariant_paths": result.required_invariant_paths,
             "working_context": working_context,
-            "attestation_scope": "local-object verification only; authoritative remote workflow-run verification is pending",
+            "attestation_scope": ("offline-local-only" if offline_attestation else "remote-workflow-verified"),
         }
 
 
-def status(root: Path, *, fetch_tags: bool = True) -> dict[str, Any]:
+def status(
+    root: Path,
+    *,
+    fetch_tags: bool = True,
+    offline_attestation: bool = False,
+) -> dict[str, Any]:
     root = root.resolve()
-    tag, checkpoint, sha = resolve_canonical(root, fetch_tags=fetch_tags)
+    tag, checkpoint, sha = resolve_canonical(
+        root,
+        fetch_tags=fetch_tags,
+        offline_attestation=offline_attestation,
+    )
     head = _git(root, "rev-parse", "HEAD").stdout.strip()
     if head == sha:
         relation = "CURRENT"
@@ -448,10 +480,13 @@ def checkpoint(
     allow_main: bool = False,
     check_only: bool = False,
     commit_message: str | None = None,
+    offline_attestation: bool = False,
 ) -> dict[str, Any]:
     root = root.resolve()
     tag, canonical_checkpoint, canonical_sha = resolve_canonical(
-        root, fetch_tags=fetch_tags
+        root,
+        fetch_tags=fetch_tags,
+        offline_attestation=offline_attestation,
     )
     branch = _git(root, "branch", "--show-current").stdout.strip()
     if not branch:
