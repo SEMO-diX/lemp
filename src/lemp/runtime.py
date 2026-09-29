@@ -7,6 +7,7 @@ import subprocess
 import tarfile
 import tempfile
 
+from .path_rules import allowed_memory_path
 from .template_data import TEMPLATE_FILES
 from dataclasses import dataclass
 from pathlib import Path
@@ -437,7 +438,7 @@ def _checkpoint_paths(root: Path, canonical_sha: str) -> list[str]:
 
 
 def _managed_memory_path(rel: str) -> bool:
-    return any(pattern.fullmatch(rel) for pattern in MANAGED_MEMORY_PATTERNS)
+    return allowed_memory_path(rel)
 
 
 def checkpoint(
