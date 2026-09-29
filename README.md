@@ -49,9 +49,9 @@ It does **not** contain the author's real sessions, events, archives, current st
 
 ## Implementation status
 
-The public preview currently has a working Python package, synthetic template generation, local canonical-tag resolution, snapshot-pinned `sync`, candidate/canonical `status`, structural validation, and GitHub Actions CI.
+The public preview currently has a working Python package, synthetic template generation, local canonical-tag resolution, snapshot-pinned `sync`, candidate/canonical `status`, structural validation, candidate `checkpoint` finalization, and GitHub Actions CI.
 
-The next pre-release work is checkpoint finalization, the full canonical-promotion workflow, authoritative remote workflow-attestation verification, and a real fresh-conversation ChatGPT/GitHub E2E run.
+The next pre-release work is the full canonical-promotion workflow, authoritative remote workflow-attestation verification, and a real fresh-conversation ChatGPT/GitHub E2E run.
 
 ## Current commands
 
@@ -60,6 +60,7 @@ lemp init <directory>
 lemp validate [--root <directory>]
 lemp sync [--root <directory>] [--format text|json]
 lemp status [--root <directory>] [--format text|json]
+lemp checkpoint [--root <directory>] [--check-only]
 ```
 
 The current public preview deliberately starts with the read/sync path. Checkpoint finalization and full remote workflow-attestation verification will be added before the first tagged release.
