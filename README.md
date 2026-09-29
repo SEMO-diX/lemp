@@ -51,12 +51,12 @@ It does **not** contain the author's real sessions, events, archives, current st
 
 The public preview currently has a working Python package, synthetic template generation, snapshot-pinned `sync`, candidate/canonical `status`, candidate `checkpoint` finalization, Context Contract and Applicability schema validation, Decision-to-Contract coverage checks, provenance and archive coverage validation, annotated canonical-tag promotion, exact GitHub Actions run/attempt attestation verification, a generated Canonical Gate workflow with pinned Gitleaks scanning, and GitHub Actions CI.
 
-The generated Canonical Gate now also performs previous-generation compatibility checks and installs the public runtime from an immutable verified commit SHA. The remaining release proof is a real fresh-repository/fresh-conversation ChatGPT + GitHub E2E run; the first tagged software release can then replace the preview commit pin with a release tag.
+The generated Canonical Gate now also performs previous-generation compatibility checks and installs the public runtime from an immutable verified commit SHA by default. `lemp init --runtime-spec` can point forks or alternate distributions at another runtime source. The remaining release proof is a real fresh-repository/fresh-conversation ChatGPT + GitHub E2E run; the first tagged software release can then replace the preview commit pin with a release tag.
 
 ## Current commands
 
 ```text
-lemp init <directory>
+lemp init <directory> [--runtime-spec <pip-spec>]
 lemp validate [--root <directory>]
 lemp sync [--root <directory>] [--format text|json]
 lemp status [--root <directory>] [--format text|json]
