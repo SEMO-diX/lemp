@@ -1,0 +1,14 @@
+id: CTX-DEMO
+protocol: LEMP
+protocol_version: "1.1"
+status: active
+required:
+  - state/CURRENT.yaml
+  - decisions/D000001.md
+  - topics/demo.md
+required_invariants:
+  - INV000001
+  - INV000002
+  - INV000003
+optional:
+  - reports/latest.md
