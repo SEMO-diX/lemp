@@ -64,6 +64,7 @@ control_plane:
   conflict_index: conflicts/INDEX.yaml
   current_state: state/CURRENT.yaml
   applicability_index: applicability/INDEX.yaml
+  applicability_schema: schemas/applicability.schema.json
   integrity_gate:
     statuses: [PASS, PARTIAL, FAIL]
     fail_closed_on:
@@ -72,6 +73,9 @@ control_plane:
       - missing_required_context
       - missing_critical_invariant
       - unresolved_critical_conflict
+      - current_state_mismatch
+      - applicability_unresolved
+      - contract_coverage_mismatch
 
 canonical:
   candidate_ref: main
@@ -79,7 +83,17 @@ canonical:
   require_validated_snapshot: true
   pin_snapshot_sha: true
   fallback_to_last_validated: true
+  promotion_workflow: .github/workflows/lemp-canonical.yml
   attestation_required_from: CP000017
+  attestation_version: 1
+  attestation_workflow: .github/workflows/lemp-canonical.yml
+  remote_workflow_verification_required: true
+  offline_attestation_authoritative: false
+  refresh_remote_tags_before_resolution: true
+  prune_stale_remote_tags: true
+  verify_exact_attested_run_attempt: true
+  recover_failed_attestation_same_commit_only: true
+  recover_failed_attestation_force_with_lease: true
 
 archive_policy:
   recursive_summary_only: false
@@ -117,17 +131,30 @@ Checkpoint: CP000001
     "contracts/GLOBAL.yaml": """id: CTX-GLOBAL
 protocol: LEMP
 protocol_version: "1.1"
+version: 1
 status: active
+scope:
+  - "*"
 required:
   - MANIFEST.yaml
   - STATE.md
   - invariants/INDEX.yaml
   - conflicts/INDEX.yaml
+  - archive/INDEX.yaml
+  - state/CURRENT.yaml
+  - applicability/INDEX.yaml
 required_invariants:
   - INV000001
   - INV000002
   - INV000003
 optional: []
+checks:
+  repository_available: true
+  checkpoint_match: true
+  state_version_match: true
+  required_context_exists: true
+  critical_invariants_active: true
+  unresolved_critical_conflicts: false
 integrity_gate:
   fail_closed: true
   fail_on:
@@ -136,11 +163,20 @@ integrity_gate:
     - missing_required_context
     - missing_critical_invariant
     - unresolved_critical_conflict
+    - current_state_mismatch
+    - applicability_unresolved
+    - contract_coverage_mismatch
+archive_policy:
+  on_conflict: true
+  on_uncertainty: true
+  otherwise: false
 """,
     "contracts/demo.yaml": """id: CTX-DEMO
 protocol: LEMP
 protocol_version: "1.1"
+version: 1
 status: active
+topic: demo
 required:
   - state/CURRENT.yaml
   - decisions/D000001.md
@@ -151,6 +187,14 @@ required_invariants:
   - INV000003
 optional:
   - reports/latest.md
+archive_policy:
+  on_conflict: true
+  on_uncertainty: true
+  on_source_verification: true
+  otherwise: false
+reasoning_policy:
+  require_integrity_gate_for_important_tasks: true
+  allow_partial_for_noncritical_tasks: true
 """,
     "invariants/INDEX.yaml": """protocol: LEMP
 protocol_version: "1.1"
@@ -241,6 +285,7 @@ facts:
 """,
     "applicability/INDEX.yaml": """protocol: LEMP
 protocol_version: "1.1"
+version: 1
 status: active
 policy:
   summary_authority: additive_only
@@ -248,17 +293,33 @@ policy:
   ambiguity: union_active_contracts
   unresolved_important_memory_routing: fail_closed
   session_binding:
+    enabled: true
     minimum_contracts:
       - CTX-GLOBAL
 routing:
+  memory_entry:
+    command_prefixes:
+      - memory
+    literals:
+      - memory sync
+      - memory status
+      - memory checkpoint
+    resource_literals:
+      - MANIFEST.yaml
+      - STATE.md
   contracts:
     - id: CTX-GLOBAL
       always_on_memory_entry: true
+      command_prefixes: []
+      topic_literals: []
+      resource_literals: []
     - id: CTX-DEMO
-      commands:
-        - memory sync
-        - memory status
-      resources:
+      always_on_memory_entry: false
+      command_prefixes:
+        - demo
+      topic_literals:
+        - demo
+      resource_literals:
         - decisions/D000001.md
         - topics/demo.md
   semantic_hints:
@@ -331,6 +392,407 @@ The point of this topic is to make fresh-conversation recovery visible and easy 
     "reports/latest.md": """# Synthetic status report
 
 The fabricated demo is at MVP planning stage. No real project or personal information is present.
+""",
+    "schemas/applicability.schema.json": """{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/lemp/schemas/applicability.schema.json",
+  "title": "LEMP v1.1 Applicability Index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "protocol_version",
+    "version",
+    "status",
+    "policy",
+    "routing"
+  ],
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": [
+        "active",
+        "inactive",
+        "deprecated"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary_authority",
+        "semantic_routing",
+        "ambiguity",
+        "unresolved_important_memory_routing",
+        "session_binding"
+      ],
+      "properties": {
+        "summary_authority": {
+          "const": "additive_only"
+        },
+        "semantic_routing": {
+          "const": "additive_only"
+        },
+        "ambiguity": {
+          "const": "union_active_contracts"
+        },
+        "unresolved_important_memory_routing": {
+          "const": "fail_closed"
+        },
+        "session_binding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "minimum_contracts"
+          ],
+          "properties": {
+            "enabled": {
+              "const": true
+            },
+            "minimum_contracts": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^CTX-[A-Z0-9][A-Z0-9-]*$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memory_entry",
+        "contracts",
+        "semantic_hints"
+      ],
+      "properties": {
+        "memory_entry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "command_prefixes",
+            "literals",
+            "resource_literals"
+          ],
+          "properties": {
+            "command_prefixes": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "literals": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "resource_literals": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "contracts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "always_on_memory_entry",
+              "command_prefixes",
+              "topic_literals",
+              "resource_literals"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^CTX-[A-Z0-9][A-Z0-9-]*$"
+              },
+              "always_on_memory_entry": {
+                "type": "boolean"
+              },
+              "command_prefixes": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "topic_literals": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "resource_literals": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "semantic_hints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "patterns"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^CTX-[A-Z0-9][A-Z0-9-]*$"
+              },
+              "patterns": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+""",
+    "schemas/context-contract.schema.json": """{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/lemp/schemas/context-contract.schema.json",
+  "title": "LEMP v1.1 Context Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "protocol",
+    "protocol_version",
+    "version",
+    "status",
+    "required",
+    "required_invariants",
+    "archive_policy"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^CTX-[A-Z0-9][A-Z0-9-]*$"
+    },
+    "protocol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "protocol_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": [
+        "active",
+        "inactive",
+        "deprecated"
+      ]
+    },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "topic": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required_invariants": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^INV[0-9]{6}$"
+      }
+    },
+    "optional": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository_available",
+        "checkpoint_match",
+        "state_version_match",
+        "required_context_exists",
+        "critical_invariants_active",
+        "unresolved_critical_conflicts"
+      ],
+      "properties": {
+        "repository_available": {
+          "type": "boolean"
+        },
+        "checkpoint_match": {
+          "type": "boolean"
+        },
+        "state_version_match": {
+          "type": "boolean"
+        },
+        "required_context_exists": {
+          "type": "boolean"
+        },
+        "critical_invariants_active": {
+          "type": "boolean"
+        },
+        "unresolved_critical_conflicts": {
+          "type": "boolean"
+        }
+      }
+    },
+    "integrity_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fail_closed",
+        "fail_on"
+      ],
+      "properties": {
+        "fail_closed": {
+          "type": "boolean"
+        },
+        "fail_on": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "archive_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "on_conflict",
+        "on_uncertainty",
+        "otherwise"
+      ],
+      "properties": {
+        "on_conflict": {
+          "type": "boolean"
+        },
+        "on_uncertainty": {
+          "type": "boolean"
+        },
+        "on_source_verification": {
+          "type": "boolean"
+        },
+        "otherwise": {
+          "type": "boolean"
+        }
+      }
+    },
+    "reasoning_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_integrity_gate_for_important_tasks",
+        "allow_partial_for_noncritical_tasks"
+      ],
+      "properties": {
+        "require_integrity_gate_for_important_tasks": {
+          "type": "boolean"
+        },
+        "allow_partial_for_noncritical_tasks": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "scope"
+      ],
+      "not": {
+        "required": [
+          "topic"
+        ]
+      }
+    },
+    {
+      "required": [
+        "topic"
+      ],
+      "not": {
+        "required": [
+          "scope"
+        ]
+      }
+    }
+  ]
+}
 """,
     ".github/workflows/lemp-canonical.yml": """name: LEMP Canonical Gate
 
