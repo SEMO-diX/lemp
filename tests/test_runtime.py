@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+from lemp.runtime import init_memory, status, sync, validate
+
+
+def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", *args], cwd=root, text=True, capture_output=True, check=True)
+
+
+def fixture(tmp_path: Path) -> Path:
+    root = tmp_path / "memory"
+    init_memory(root)
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.name", "LEMP Test")
+    git(root, "config", "user.email", "lemp@example.invalid")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "synthetic canonical")
+    git(root, "tag", "lemp-valid/CP000001")
+    return root
+
+
+def test_template_validates(tmp_path: Path) -> None:
+    root = fixture(tmp_path)
+    result = validate(root)
+    assert result.integrity == "PASS"
+
+
+def test_sync_materializes_canonical_context(tmp_path: Path) -> None:
+    root = fixture(tmp_path)
+    payload = sync(root, fetch_tags=False)
+    assert payload["integrity"] == "PASS"
+    assert payload["canonical"]["checkpoint"] == "CP000001"
+    paths = {item["path"] for item in payload["working_context"]}
+    assert "STATE.md" in paths
+    assert "decisions/D000001.md" in paths
+    assert "invariants/INV000003.yaml" in paths
+
+
+def test_unvalidated_head_does_not_replace_canonical(tmp_path: Path) -> None:
+    root = fixture(tmp_path)
+    state = root / "STATE.md"
+    state.write_text(state.read_text(encoding="utf-8") + "\nCandidate-only note.\n", encoding="utf-8")
+    git(root, "add", "STATE.md")
+    git(root, "commit", "-m", "unvalidated candidate")
+    s = status(root, fetch_tags=False)
+    assert s["candidate"]["relation"] == "NEWER_UNVALIDATED"
+    payload = sync(root, fetch_tags=False)
+    canonical_state = next(x["content"] for x in payload["working_context"] if x["path"] == "STATE.md")
+    assert "Candidate-only note" not in canonical_state
