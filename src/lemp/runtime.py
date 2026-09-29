@@ -458,9 +458,29 @@ def status(
     else:
         ancestor = _git(root, "merge-base", "--is-ancestor", sha, head, check=False)
         relation = "NEWER_UNVALIDATED" if ancestor.returncode == 0 else "DIVERGED_UNVALIDATED"
+
+    with tempfile.TemporaryDirectory(prefix="lemp-status-") as raw:
+        snapshot = Path(raw)
+        _extract_snapshot(root, sha, snapshot)
+        result = validate(snapshot)
+        if result.integrity == "FAIL":
+            raise LEMPError(
+                "canonical snapshot failed integrity: " + "; ".join(result.errors)
+            )
+
     return {
-        "canonical": {"tag": tag, "checkpoint": checkpoint, "sha": sha},
+        "integrity": result.integrity,
+        "canonical": {
+            "tag": tag,
+            "checkpoint": checkpoint,
+            "sha": sha,
+            "state_version": result.state_version,
+        },
         "candidate": {"sha": head, "relation": relation},
+        "missing_optional": result.missing_optional,
+        "attestation_scope": (
+            "offline-local-only" if offline_attestation else "remote-workflow-verified"
+        ),
     }
 
 
