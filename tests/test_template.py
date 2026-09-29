@@ -47,3 +47,16 @@ def test_generated_canonical_workflow_is_sha_pinned(tmp_path: Path) -> None:
     match = re.search(r"@([0-9a-f]{40})$", spec)
     assert match is not None
     assert not spec.endswith("@main")
+
+
+def test_runtime_source_can_be_overridden(tmp_path: Path) -> None:
+    root = tmp_path / "memory"
+    custom = "git+https://github.com/example/lemp.git@0123456789abcdef0123456789abcdef01234567"
+    init_memory(root, runtime_spec=custom)
+    workflow = yaml.load(
+        (root / ".github" / "workflows" / "lemp-canonical.yml").read_text(
+            encoding="utf-8"
+        ),
+        Loader=yaml.BaseLoader,
+    )
+    assert workflow["env"]["LEMP_RUNTIME_SPEC"] == custom
