@@ -19,7 +19,8 @@ Prove that a fresh user can use GitHub as durable LLM memory without depending o
 - the author's private memory history
 - v1.2 Semantic Approval
 - a guarantee that connector permissions are sandboxed by LEMP
-- authoritative online verification of GitHub Actions attestation from the public CLI
+
+The generated memory template now includes a Canonical Gate workflow that validates memory, scans repository history for detectable secrets, checks checkpoint sequencing, creates annotated canonical tags, and supports same-commit recovery after a failed attestation attempt. CP000017+ synchronization verifies the exact attested GitHub Actions run/attempt by default; `--offline-attestation` is diagnostic only.
 
 ## Release gate
 
