@@ -24,4 +24,4 @@ Public-release readiness is judged by reproducibility, separation of implementat
 
 ## Open decisions
 
-The public license and final first-release checkpoint/write-back packaging are intentionally not fixed yet.
+The repository uses Apache License 2.0. Final first-release checkpoint/write-back packaging is still intentionally open.
