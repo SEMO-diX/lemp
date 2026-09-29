@@ -371,6 +371,17 @@ jobs:
       - name: Validate memory structure
         run: lemp validate --root . --format json
 
+      - name: Scan repository history for secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$PWD:/repo:ro" \
+            -w /repo \
+            ghcr.io/gitleaks/gitleaks:v8.29.1@sha256:aa036a2f4bdfe3cc3c55fa4326308efabb4a6be498c883c864fd1d0d5585438a \
+            git --redact --no-banner /repo
+
       - name: Validate checkpoint sequence
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
