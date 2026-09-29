@@ -1,0 +1,22 @@
+id: CTX-GLOBAL
+protocol: LEMP
+protocol_version: "1.1"
+status: active
+required:
+  - MANIFEST.yaml
+  - STATE.md
+  - invariants/INDEX.yaml
+  - conflicts/INDEX.yaml
+required_invariants:
+  - INV000001
+  - INV000002
+  - INV000003
+optional: []
+integrity_gate:
+  fail_closed: true
+  fail_on:
+    - checkpoint_mismatch
+    - state_version_mismatch
+    - missing_required_context
+    - missing_critical_invariant
+    - unresolved_critical_conflict
