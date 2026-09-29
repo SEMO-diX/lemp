@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from .promotion import PromotionError, prepare_tag, prepare_tag_from_environment
 from .runtime import LEMPError, checkpoint, format_payload, init_memory, status, sync, validate
 
 
@@ -17,6 +18,19 @@ def parser() -> argparse.ArgumentParser:
     val = sub.add_parser("validate", help="validate a memory working tree")
     val.add_argument("--root", default=".")
     val.add_argument("--format", choices=["text", "json"], default="text")
+
+    promote = sub.add_parser(
+        "prepare-tag",
+        help="prepare an attested canonical tag for the current GitHub Actions run",
+    )
+    promote.add_argument("--root", default=".")
+    promote.add_argument("--format", choices=["text", "json"], default="json")
+    promote.add_argument("--checkpoint")
+    promote.add_argument("--commit-sha")
+    promote.add_argument("--repository")
+    promote.add_argument("--run-id")
+    promote.add_argument("--run-attempt")
+    promote.add_argument("--event")
 
     cp = sub.add_parser("checkpoint", help="finalize a prepared candidate checkpoint")
     cp.add_argument("--root", default=".")
@@ -43,6 +57,38 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             path = init_memory(Path(args.directory))
             print(f"Initialized synthetic LEMP memory at {path}")
+            return 0
+        if args.command == "prepare-tag":
+            explicit = any(
+                value is not None
+                for value in (
+                    args.checkpoint,
+                    args.commit_sha,
+                    args.repository,
+                    args.run_id,
+                    args.run_attempt,
+                    args.event,
+                )
+            )
+            if explicit:
+                import os
+                import yaml
+
+                manifest = yaml.safe_load(
+                    (Path(args.root) / "MANIFEST.yaml").read_text(encoding="utf-8")
+                ) or {}
+                payload = prepare_tag(
+                    Path(args.root),
+                    checkpoint=args.checkpoint or str(manifest.get("checkpoint") or ""),
+                    commit_sha=args.commit_sha or os.environ.get("GITHUB_SHA", ""),
+                    repository=args.repository or os.environ.get("GITHUB_REPOSITORY", ""),
+                    run_id=args.run_id or os.environ.get("GITHUB_RUN_ID", ""),
+                    run_attempt=args.run_attempt or os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+                    event=args.event or os.environ.get("GITHUB_EVENT_NAME", ""),
+                )
+            else:
+                payload = prepare_tag_from_environment(Path(args.root))
+            print(format_payload(payload, args.format))
             return 0
         if args.command == "validate":
             result = validate(Path(args.root))
@@ -76,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(format_payload(payload, args.format))
             return 0
-    except LEMPError as exc:
+    except (LEMPError, PromotionError) as exc:
         print(f"LEMP FAIL: {exc}", file=sys.stderr)
         return 1
     return 2
