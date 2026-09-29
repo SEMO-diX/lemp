@@ -33,3 +33,10 @@ The intended release gate is a fresh repository test:
 5. connect the repository to ChatGPT through GitHub;
 6. from a new conversation, recover the prior durable decision and current state;
 7. verify that missing required context fails closed.
+
+
+## Previous-generation defense
+
+For checkpoints after CP000001, candidate finalization validates the candidate against the immediately previous canonical generation. The public implementation preserves the prior generation's required context, active contracts, critical invariants, and fail-closed conditions. This is defense in depth against accidental control-plane weakening while keeping the reusable runtime separate from the memory repository.
+
+The generated Canonical Gate installs the reference runtime from an immutable verified commit SHA during the preview phase.
