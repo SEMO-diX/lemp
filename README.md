@@ -47,6 +47,12 @@ This repository contains the protocol, reference runtime, synthetic templates, t
 
 It does **not** contain the author's real sessions, events, archives, current state, or private memory history. The public repository was created with a clean history rather than by making the private memory repository public.
 
+## Implementation status
+
+The public preview currently has a working Python package, synthetic template generation, local canonical-tag resolution, snapshot-pinned `sync`, candidate/canonical `status`, structural validation, and GitHub Actions CI.
+
+The next pre-release work is checkpoint finalization, the full canonical-promotion workflow, authoritative remote workflow-attestation verification, and a real fresh-conversation ChatGPT/GitHub E2E run.
+
 ## Current commands
 
 ```text
