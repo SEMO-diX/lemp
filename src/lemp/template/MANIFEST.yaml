@@ -1,0 +1,66 @@
+protocol: LEMP
+protocol_version: "1.1"
+status: Draft
+memory_version: 1
+checkpoint: CP000001
+latest_session: S000001
+latest_event: E000001
+latest_decision: D000001
+state_version: 1
+updated_at: "2026-09-29"
+
+required_context:
+  - BOOTSTRAP.md
+  - STATE.md
+  - contracts/GLOBAL.yaml
+  - contracts/demo.yaml
+  - invariants/INDEX.yaml
+  - decisions/INDEX.yaml
+  - conflicts/INDEX.yaml
+  - archive/INDEX.yaml
+  - state/CURRENT.yaml
+  - applicability/INDEX.yaml
+  - topics/demo.md
+
+critical_memories:
+  - decisions/D000001.md
+
+active_topics:
+  - topics/demo.md
+
+control_plane:
+  enabled: true
+  global_contract: contracts/GLOBAL.yaml
+  active_contracts:
+    - contracts/demo.yaml
+  invariant_index: invariants/INDEX.yaml
+  decision_index: decisions/INDEX.yaml
+  conflict_index: conflicts/INDEX.yaml
+  current_state: state/CURRENT.yaml
+  applicability_index: applicability/INDEX.yaml
+  integrity_gate:
+    statuses: [PASS, PARTIAL, FAIL]
+    fail_closed_on:
+      - checkpoint_mismatch
+      - state_version_mismatch
+      - missing_required_context
+      - missing_critical_invariant
+      - unresolved_critical_conflict
+
+canonical:
+  candidate_ref: main
+  validated_tag_prefix: "lemp-valid/"
+  require_validated_snapshot: true
+  pin_snapshot_sha: true
+  fallback_to_last_validated: true
+  attestation_required_from: CP000017
+
+archive_policy:
+  recursive_summary_only: false
+  source_recovery_required: true
+  immutable_preferred: true
+  checkpointed_session_archive_required: true
+  index: archive/INDEX.yaml
+
+security:
+  secrets_allowed: false
