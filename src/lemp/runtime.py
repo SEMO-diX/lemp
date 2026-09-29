@@ -8,6 +8,7 @@ import tarfile
 import tempfile
 
 from .attestation import AttestationError, RemoteVerificationUnavailable, verify_attested_tag
+from .control_plane import validate_control_plane
 from .path_rules import allowed_memory_path
 from .template_data import TEMPLATE_FILES
 from dataclasses import dataclass
@@ -263,6 +264,8 @@ def validate(root: Path) -> Validation:
                     errors.append("latest session has no source-recovery archive record")
             except LEMPError as exc:
                 errors.append(str(exc))
+
+    errors.extend(validate_control_plane(root, manifest))
 
     integrity = "FAIL" if errors else ("PARTIAL" if missing_optional else "PASS")
     return Validation(
