@@ -4,6 +4,9 @@ All content in this module is fabricated for the public demonstration.
 No private memory records are copied here.
 """
 
+DEFAULT_RUNTIME_SPEC = "git+https://github.com/SEMO-diX/lemp.git@4e1e6e798c4ed209dcd9f6b7ec7fabe2fd467875"
+RUNTIME_SPEC_PLACEHOLDER = "__LEMP_RUNTIME_SPEC__"
+
 TEMPLATE_FILES: dict[str, str] = {
     "README.md": """# Synthetic LEMP memory
 
@@ -807,7 +810,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  LEMP_RUNTIME_SPEC: git+https://github.com/SEMO-diX/lemp.git@4e1e6e798c4ed209dcd9f6b7ec7fabe2fd467875
+  LEMP_RUNTIME_SPEC: __LEMP_RUNTIME_SPEC__
 
 jobs:
   gate:
