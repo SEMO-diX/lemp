@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .runtime import LEMPError, format_payload, init_memory, status, sync, validate
+from .runtime import LEMPError, checkpoint, format_payload, init_memory, status, sync, validate
 
 
 def parser() -> argparse.ArgumentParser:
@@ -17,6 +17,14 @@ def parser() -> argparse.ArgumentParser:
     val = sub.add_parser("validate", help="validate a memory working tree")
     val.add_argument("--root", default=".")
     val.add_argument("--format", choices=["text", "json"], default="text")
+
+    cp = sub.add_parser("checkpoint", help="finalize a prepared candidate checkpoint")
+    cp.add_argument("--root", default=".")
+    cp.add_argument("--format", choices=["text", "json"], default="text")
+    cp.add_argument("--no-fetch-tags", action="store_true")
+    cp.add_argument("--allow-main", action="store_true")
+    cp.add_argument("--check-only", action="store_true")
+    cp.add_argument("--message")
 
     for name in ("sync", "status"):
         cmd = sub.add_parser(name)
@@ -41,6 +49,16 @@ def main(argv: list[str] | None = None) -> int:
             return 0 if result.integrity != "FAIL" else 1
         if args.command == "sync":
             payload = sync(Path(args.root), fetch_tags=not args.no_fetch_tags)
+            print(format_payload(payload, args.format))
+            return 0
+        if args.command == "checkpoint":
+            payload = checkpoint(
+                Path(args.root),
+                fetch_tags=not args.no_fetch_tags,
+                allow_main=args.allow_main,
+                check_only=args.check_only,
+                commit_message=args.message,
+            )
             print(format_payload(payload, args.format))
             return 0
         if args.command == "status":
