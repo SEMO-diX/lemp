@@ -49,9 +49,9 @@ It does **not** contain the author's real sessions, events, archives, current st
 
 ## Implementation status
 
-The public preview currently has a working Python package, synthetic template generation, snapshot-pinned `sync`, candidate/canonical `status`, structural validation, candidate `checkpoint` finalization, annotated canonical-tag promotion, exact GitHub Actions run/attempt attestation verification, a generated Canonical Gate workflow, and GitHub Actions CI.
+The public preview currently has a working Python package, synthetic template generation, snapshot-pinned `sync`, candidate/canonical `status`, candidate `checkpoint` finalization, Context Contract and Applicability schema validation, Decision-to-Contract coverage checks, provenance and archive coverage validation, annotated canonical-tag promotion, exact GitHub Actions run/attempt attestation verification, a generated Canonical Gate workflow with pinned Gitleaks scanning, and GitHub Actions CI.
 
-The next pre-release work is a real fresh-repository/fresh-conversation ChatGPT + GitHub E2E run, broader validator parity with the private v1.1 implementation, and replacing the preview workflow's mutable runtime reference with a tagged release pin.
+The next pre-release work is previous-generation validation against the prior canonical checkpoint, a real fresh-repository/fresh-conversation ChatGPT + GitHub E2E run, and replacing the preview workflow's mutable runtime reference with a tagged release pin.
 
 ## Current commands
 
