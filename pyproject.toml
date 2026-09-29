@@ -27,8 +27,5 @@ include-package-data = true
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-data]
-lemp = ["template/**/*"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
