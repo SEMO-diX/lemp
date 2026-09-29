@@ -14,6 +14,7 @@ def parser() -> argparse.ArgumentParser:
 
     init = sub.add_parser("init", help="create a synthetic LEMP memory repository")
     init.add_argument("directory")
+    init.add_argument("--runtime-spec")
 
     val = sub.add_parser("validate", help="validate a memory working tree")
     val.add_argument("--root", default=".")
@@ -55,7 +56,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         if args.command == "init":
-            path = init_memory(Path(args.directory))
+            kwargs = {} if args.runtime_spec is None else {"runtime_spec": args.runtime_spec}
+            path = init_memory(Path(args.directory), **kwargs)
             print(f"Initialized synthetic LEMP memory at {path}")
             return 0
         if args.command == "prepare-tag":
