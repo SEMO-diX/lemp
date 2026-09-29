@@ -25,3 +25,10 @@ Because ChatGPT and GitHub product controls may change, this repository document
 LEMP is designed to keep unvalidated candidate state from silently becoming canonical memory, to detect missing required context, and to preserve a source-recovery path.
 
 It does not make a broadly privileged GitHub connector harmless. Repository access control, account security, branch/ruleset settings, and external backups remain separate controls.
+
+
+## Canonical promotion
+
+The generated synthetic memory repository includes `.github/workflows/lemp-canonical.yml`. On a validated push to `main`, it checks checkpoint sequencing, runs a pinned Gitleaks history scan, prepares an annotated `lemp-valid/CPxxxxxx` tag bound to the exact commit and workflow run/attempt, and pushes that tag.
+
+The preview workflow currently installs the public runtime from the repository's `main` branch. This is intentionally a pre-release convenience; the first tagged release should pin the workflow to an immutable LEMP release.
