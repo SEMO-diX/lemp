@@ -15,4 +15,4 @@ python -m pip install -e ".[test]"
 pytest -q
 ```
 
-The project license has not yet been selected, so contribution/licensing terms will be clarified before the first tagged public release.
+Contributions are made under the repository's Apache License 2.0 terms.
