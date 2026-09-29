@@ -69,4 +69,4 @@ The current public preview deliberately starts with the read/sync path. Checkpoi
 
 ## License
 
-A public license has **not yet been selected**. Do not assume an open-source license until a LICENSE file is added.
+Apache License 2.0. See [LICENSE](LICENSE).
