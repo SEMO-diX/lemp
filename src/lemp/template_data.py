@@ -1,0 +1,335 @@
+"""Synthetic memory template used by `lemp init`.
+
+All content in this module is fabricated for the public demonstration.
+No private memory records are copied here.
+"""
+
+TEMPLATE_FILES: dict[str, str] = {
+    "README.md": """# Synthetic LEMP memory
+
+This repository contains fabricated demo memory for exercising LEMP.
+""",
+    "BOOTSTRAP.md": """# LEMP Bootstrap
+
+Synthetic LEMP v1.1 template.
+
+Synchronization semantics:
+
+- canonical authority is the newest valid `lemp-valid/CPxxxxxx` checkpoint, not an unvalidated branch head;
+- one exact commit SHA is pinned for a synchronization pass;
+- `MANIFEST.yaml`, `STATE.md`, declared required context, active Context Contracts, and required critical invariants come from that same snapshot;
+- checkpoint and state-version mismatches, missing required context, missing critical invariants, or unresolved critical conflicts produce `FAIL`;
+- optional-context absence may produce `PARTIAL`; otherwise the result is `PASS`;
+- durable context is used only after the integrity result is established.
+
+For CP000017 and later, production conformance also includes annotated canonical attestation and authoritative workflow-run verification. The public preview CLI currently validates the local tag object only.
+""",
+    "MANIFEST.yaml": """protocol: LEMP
+protocol_version: "1.1"
+status: Draft
+memory_version: 1
+checkpoint: CP000001
+latest_session: S000001
+latest_event: E000001
+latest_decision: D000001
+state_version: 1
+updated_at: "2026-09-29"
+
+required_context:
+  - BOOTSTRAP.md
+  - STATE.md
+  - contracts/GLOBAL.yaml
+  - contracts/demo.yaml
+  - invariants/INDEX.yaml
+  - decisions/INDEX.yaml
+  - conflicts/INDEX.yaml
+  - archive/INDEX.yaml
+  - state/CURRENT.yaml
+  - applicability/INDEX.yaml
+  - topics/demo.md
+
+critical_memories:
+  - decisions/D000001.md
+
+active_topics:
+  - topics/demo.md
+
+control_plane:
+  enabled: true
+  global_contract: contracts/GLOBAL.yaml
+  active_contracts:
+    - contracts/demo.yaml
+  invariant_index: invariants/INDEX.yaml
+  decision_index: decisions/INDEX.yaml
+  conflict_index: conflicts/INDEX.yaml
+  current_state: state/CURRENT.yaml
+  applicability_index: applicability/INDEX.yaml
+  integrity_gate:
+    statuses: [PASS, PARTIAL, FAIL]
+    fail_closed_on:
+      - checkpoint_mismatch
+      - state_version_mismatch
+      - missing_required_context
+      - missing_critical_invariant
+      - unresolved_critical_conflict
+
+canonical:
+  candidate_ref: main
+  validated_tag_prefix: "lemp-valid/"
+  require_validated_snapshot: true
+  pin_snapshot_sha: true
+  fallback_to_last_validated: true
+  attestation_required_from: CP000017
+
+archive_policy:
+  recursive_summary_only: false
+  source_recovery_required: true
+  immutable_preferred: true
+  checkpointed_session_archive_required: true
+  index: archive/INDEX.yaml
+
+security:
+  secrets_allowed: false
+""",
+    "STATE.md": """# Current State
+
+State-Version: 1
+Updated: 2026-09-29
+Checkpoint: CP000001
+
+## Current truths
+
+- This repository is synthetic demonstration memory.
+- GitHub is the durable external memory store.
+- Conversation context is temporary and non-canonical.
+- The selected canonical checkpoint must be validated before durable context is trusted.
+- The demo application backend is FastAPI.
+- The demo database is PostgreSQL.
+- Offline mode is not part of the demo MVP.
+
+## Integrity notes
+
+- MANIFEST checkpoint expected: `CP000001`
+- MANIFEST state version expected: `1`
+- This file Checkpoint: `CP000001`
+- This file State-Version: `1`
+""",
+    "contracts/GLOBAL.yaml": """id: CTX-GLOBAL
+protocol: LEMP
+protocol_version: "1.1"
+status: active
+required:
+  - MANIFEST.yaml
+  - STATE.md
+  - invariants/INDEX.yaml
+  - conflicts/INDEX.yaml
+required_invariants:
+  - INV000001
+  - INV000002
+  - INV000003
+optional: []
+integrity_gate:
+  fail_closed: true
+  fail_on:
+    - checkpoint_mismatch
+    - state_version_mismatch
+    - missing_required_context
+    - missing_critical_invariant
+    - unresolved_critical_conflict
+""",
+    "contracts/demo.yaml": """id: CTX-DEMO
+protocol: LEMP
+protocol_version: "1.1"
+status: active
+required:
+  - state/CURRENT.yaml
+  - decisions/D000001.md
+  - topics/demo.md
+required_invariants:
+  - INV000001
+  - INV000002
+  - INV000003
+optional:
+  - reports/latest.md
+""",
+    "invariants/INDEX.yaml": """protocol: LEMP
+protocol_version: "1.1"
+invariants:
+  - id: INV000001
+    path: invariants/INV000001.yaml
+    status: active
+    severity: critical
+  - id: INV000002
+    path: invariants/INV000002.yaml
+    status: active
+    severity: critical
+  - id: INV000003
+    path: invariants/INV000003.yaml
+    status: active
+    severity: critical
+""",
+    "invariants/INV000001.yaml": """id: INV000001
+status: active
+severity: critical
+statement: Canonical persistent memory comes from the validated GitHub repository snapshot, not from conversational recollection.
+source:
+  decision: D000001
+  path: decisions/D000001.md
+""",
+    "invariants/INV000002.yaml": """id: INV000002
+status: active
+severity: critical
+statement: Authentication secrets must never be stored in this memory repository.
+source:
+  decision: D000001
+  path: decisions/D000001.md
+""",
+    "invariants/INV000003.yaml": """id: INV000003
+status: active
+severity: critical
+statement: Important memory-dependent reasoning requires integrity verification and fails closed when required context is missing.
+source:
+  decision: D000001
+  path: decisions/D000001.md
+""",
+    "decisions/INDEX.yaml": """protocol: LEMP
+protocol_version: "1.1"
+decisions:
+  - id: D000001
+    path: decisions/D000001.md
+    status: active
+    supersedes: null
+    superseded_by: null
+    extends: []
+    context_impact:
+      mode: required
+      contracts:
+        - CTX-DEMO
+""",
+    "decisions/D000001.md": """---
+id: D000001
+status: active
+source_session: S000001
+source_event: E000001
+---
+
+# Demo MVP architecture
+
+The synthetic project uses FastAPI for the backend and PostgreSQL for storage. Offline mode is explicitly outside the synthetic MVP.
+
+This record exists only to demonstrate durable cross-session decision recovery.
+""",
+    "conflicts/INDEX.yaml": """protocol: LEMP
+protocol_version: "1.1"
+conflicts: []
+""",
+    "state/CURRENT.yaml": """protocol: LEMP
+protocol_version: "1.1"
+version: 1
+checkpoint: CP000001
+status: active
+facts:
+  backend:
+    value: FastAPI
+    source_decisions: [D000001]
+  database:
+    value: PostgreSQL
+    source_decisions: [D000001]
+  offline_mode:
+    value: excluded_from_mvp
+    source_decisions: [D000001]
+""",
+    "applicability/INDEX.yaml": """protocol: LEMP
+protocol_version: "1.1"
+status: active
+policy:
+  summary_authority: additive_only
+  semantic_routing: additive_only
+  ambiguity: union_active_contracts
+  unresolved_important_memory_routing: fail_closed
+  session_binding:
+    minimum_contracts:
+      - CTX-GLOBAL
+routing:
+  contracts:
+    - id: CTX-GLOBAL
+      always_on_memory_entry: true
+    - id: CTX-DEMO
+      commands:
+        - memory sync
+        - memory status
+      resources:
+        - decisions/D000001.md
+        - topics/demo.md
+  semantic_hints:
+    - id: CTX-DEMO
+      patterns:
+        - "(?i)backend|database|offline|demo"
+""",
+    "archive/INDEX.yaml": """protocol: LEMP
+protocol_version: "1.1"
+version: 1
+policy:
+  checkpointed_session_archive_required: true
+  allowed_record_types:
+    - source-recovery
+  expected_status: immutable-preferred
+records:
+  - session: S000001
+    path: archive/S000001-source.md
+    record_type: source-recovery
+    status: immutable-preferred
+""",
+    "archive/S000001-source.md": """# Source Recovery — S000001
+
+Synthetic source material for the public LEMP demonstration.
+
+The demo chose FastAPI, PostgreSQL, and excluded offline mode from MVP scope. No real user memory is contained in this archive.
+""",
+    "sessions/S000001.md": """---
+id: S000001
+date: 2026-09-29
+previous: null
+checkpoint_after: CP000001
+state_version_after: 1
+---
+
+# Session S000001
+
+Initialized the synthetic demonstration memory and recorded its first durable architecture decision.
+""",
+    "events/E000001.md": """---
+id: E000001
+type: synthetic_demo_initialized
+source_session: S000001
+supersedes: null
+status: active
+created_by: example
+confidence: explicit
+---
+
+# Synthetic demo initialized
+
+The public demonstration memory was initialized with fully synthetic project facts.
+""",
+    "topics/demo.md": """---
+id: demo
+checkpoint: CP000001
+status: active
+---
+
+# Synthetic Demo Project
+
+Current durable architecture:
+
+- backend: FastAPI
+- database: PostgreSQL
+- offline mode: excluded from MVP
+
+The point of this topic is to make fresh-conversation recovery visible and easy to test.
+""",
+    "reports/latest.md": """# Synthetic status report
+
+The fabricated demo is at MVP planning stage. No real project or personal information is present.
+""",
+}
