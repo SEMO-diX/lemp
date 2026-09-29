@@ -125,3 +125,4 @@ Synthetic checkpoint progression test.
     assert result["result"] == "CANDIDATE_COMMITTED"
     assert result["candidate_checkpoint"] == "CP000002"
     assert result["promotion"] == "PENDING_CANONICAL_GATE"
+    assert result["previous_generation"]["result"] == "PASS"
