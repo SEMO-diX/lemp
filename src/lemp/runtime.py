@@ -7,6 +7,7 @@ import subprocess
 import tarfile
 import tempfile
 
+from .archive_validation import validate_archive
 from .attestation import AttestationError, RemoteVerificationUnavailable, verify_attested_tag
 from .control_plane import validate_control_plane
 from .path_rules import allowed_memory_path
@@ -269,6 +270,8 @@ def validate(root: Path) -> Validation:
     errors.extend(validate_control_plane(root, manifest))
 
     errors.extend(validate_provenance(root, manifest))
+
+    errors.extend(validate_archive(root, manifest))
 
     integrity = "FAIL" if errors else ("PARTIAL" if missing_optional else "PASS")
     return Validation(
