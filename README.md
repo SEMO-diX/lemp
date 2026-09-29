@@ -51,7 +51,7 @@ It does **not** contain the author's real sessions, events, archives, current st
 
 The public preview currently has a working Python package, synthetic template generation, snapshot-pinned `sync`, candidate/canonical `status`, candidate `checkpoint` finalization, Context Contract and Applicability schema validation, Decision-to-Contract coverage checks, provenance and archive coverage validation, annotated canonical-tag promotion, exact GitHub Actions run/attempt attestation verification, a generated Canonical Gate workflow with pinned Gitleaks scanning, and GitHub Actions CI.
 
-The next pre-release work is previous-generation validation against the prior canonical checkpoint, a real fresh-repository/fresh-conversation ChatGPT + GitHub E2E run, and replacing the preview workflow's mutable runtime reference with a tagged release pin.
+The generated Canonical Gate now also performs previous-generation compatibility checks and installs the public runtime from an immutable verified commit SHA. The remaining release proof is a real fresh-repository/fresh-conversation ChatGPT + GitHub E2E run; the first tagged software release can then replace the preview commit pin with a release tag.
 
 ## Current commands
 
