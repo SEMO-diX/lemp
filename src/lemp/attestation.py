@@ -134,13 +134,13 @@ def _github_json(repository: str, path: str) -> dict[str, Any]:
     return data
 
 
-def verify_workflow_run(
+def workflow_run_attempt(
     repository: str,
     run_id: int,
     run_attempt: int,
     sha: str,
     event: str,
-) -> None:
+) -> dict[str, Any]:
     data = _github_json(
         repository,
         f"actions/runs/{run_id}/attempts/{run_attempt}",
@@ -152,13 +152,25 @@ def verify_workflow_run(
         "head_branch": "main",
         "event": event,
         "run_attempt": run_attempt,
-        "conclusion": "success",
     }
     for key, value in expected.items():
         if data.get(key) != value:
             raise AttestationError(
                 f"attested workflow run {key} mismatch: {data.get(key)!r} != {value!r}"
             )
+    return data
+
+
+def verify_workflow_run(
+    repository: str,
+    run_id: int,
+    run_attempt: int,
+    sha: str,
+    event: str,
+) -> None:
+    data = workflow_run_attempt(repository, run_id, run_attempt, sha, event)
+    if data.get("conclusion") != "success":
+        raise AttestationError("attested workflow run did not complete successfully")
 
 
 def verify_attested_tag(
