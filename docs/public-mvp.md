@@ -19,7 +19,6 @@ Prove that a fresh user can use GitHub as durable LLM memory without depending o
 - the author's private memory history
 - v1.2 Semantic Approval
 - a guarantee that connector permissions are sandboxed by LEMP
-- fully automated checkpoint finalization in the public CLI
 - authoritative online verification of GitHub Actions attestation from the public CLI
 
 ## Release gate
