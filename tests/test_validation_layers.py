@@ -80,7 +80,7 @@ def test_malformed_manifest_yaml_returns_fail(tmp_path: Path) -> None:
     ("field", "value", "expected"),
     [
         ("critical_memories", "decisions/D000001.md", "MANIFEST.critical_memories must be a list"),
-        ("required_context", {"STATE.md": True}, "MANIFEST.required_context must be a list"),
+        ("required_context", {"STATE.md": True}, "MANIFEST.required_context must be a list of paths"),
         ("archive_policy", ["archive/INDEX.yaml"], "MANIFEST.archive_policy must be a mapping"),
     ],
 )
