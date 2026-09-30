@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from lemp.promotion import prepare_tag
 from lemp.runtime import LEMPError, checkpoint, init_memory
 
 
@@ -21,7 +22,22 @@ def test_prior_required_condition_is_preserved(tmp_path: Path) -> None:
     git(root, "config", "user.email", "lemp@example.invalid")
     git(root, "add", ".")
     git(root, "commit", "-m", "cp1")
-    git(root, "tag", "lemp-valid/CP000001")
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    prepare_tag(
+        root,
+        checkpoint="CP000001",
+        commit_sha=sha,
+        repository="example/memory",
+        run_id=1,
+        run_attempt=1,
+        event="push",
+    )
     git(root, "switch", "-c", "candidate/cp000002")
 
     manifest_path = root / "MANIFEST.yaml"
@@ -69,4 +85,4 @@ def test_prior_required_condition_is_preserved(tmp_path: Path) -> None:
     archive_path.write_text(yaml.safe_dump(archive, sort_keys=False), encoding="utf-8")
 
     with pytest.raises(LEMPError, match="previous-generation validation failed"):
-        checkpoint(root, fetch_tags=False)
+        checkpoint(root, fetch_tags=False, offline_attestation=True)
