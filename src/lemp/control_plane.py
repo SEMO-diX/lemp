@@ -53,6 +53,13 @@ def _schema_errors(data: dict[str, Any], schema: dict[str, Any], rel: str) -> li
     return errors
 
 
+def _list_field(value: Any, field: str, errors: list[str]) -> list[Any]:
+    if not isinstance(value, list):
+        errors.append(f"{field} must be a list")
+        return []
+    return value
+
+
 def validate_control_plane(root: Path, manifest: dict[str, Any]) -> list[str]:
     root = root.resolve()
     errors: list[str] = []
@@ -153,7 +160,10 @@ def validate_control_plane(root: Path, manifest: dict[str, Any]) -> list[str]:
         if policy.get(key) != expected:
             errors.append(f"applicability policy.{key} must be {expected!r}")
 
-    binding = policy.get("session_binding") or {}
+    binding = policy.get("session_binding")
+    if not isinstance(binding, dict):
+        errors.append("applicability policy.session_binding must be a mapping")
+        binding = {}
     minimum_contracts = binding.get("minimum_contracts") or []
     if not isinstance(minimum_contracts, list):
         errors.append("session_binding.minimum_contracts must be a list")
@@ -162,7 +172,10 @@ def validate_control_plane(root: Path, manifest: dict[str, Any]) -> list[str]:
         if cid not in contracts_by_id:
             errors.append(f"session binding references unknown active contract: {cid}")
 
-    routing = applicability.get("routing") or {}
+    routing = applicability.get("routing")
+    if not isinstance(routing, dict):
+        errors.append("applicability routing must be a mapping")
+        routing = {}
     routes = routing.get("contracts") or []
     if not isinstance(routes, list):
         errors.append("applicability routing.contracts must be a list")
@@ -275,11 +288,21 @@ def validate_control_plane(root: Path, manifest: dict[str, Any]) -> list[str]:
             if contract is None:
                 errors.append(f"{did}: context impact references unknown contract {cid}")
                 continue
-            if rel not in (contract.get("required") or []):
+            required_paths = _list_field(
+                contract.get("required"),
+                f"{contract_path_by_id[cid]}.required",
+                errors,
+            )
+            if rel not in required_paths:
                 errors.append(f"contract coverage mismatch: {cid} is missing {rel}")
 
     for cid, contract in contracts_by_id.items():
-        for rel in contract.get("required") or []:
+        required_paths = _list_field(
+            contract.get("required"),
+            f"{contract_path_by_id[cid]}.required",
+            errors,
+        )
+        for rel in required_paths:
             if not isinstance(rel, str) or not rel.startswith("decisions/"):
                 continue
             entry = decision_by_path.get(rel)
