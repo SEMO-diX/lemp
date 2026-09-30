@@ -861,13 +861,8 @@ jobs:
           if git tag --list 'lemp-valid/CP*' | grep -q .; then
             lemp checkpoint --root . --allow-main --check-only --format json
           else
-            python - <<'PY'
-          import yaml
-          manifest = yaml.safe_load(open("MANIFEST.yaml", encoding="utf-8")) or {}
-          if manifest.get("checkpoint") != "CP000001":
-              raise SystemExit("first canonical checkpoint must be CP000001")
-          print("PASS: bootstrap checkpoint CP000001")
-          PY
+            python -c 'import sys,yaml; manifest=yaml.safe_load(open("MANIFEST.yaml", encoding="utf-8")) or {}; checkpoint=manifest.get("checkpoint"); sys.exit(f"first canonical checkpoint must be CP000001, got {checkpoint!r}") if checkpoint != "CP000001" else print("PASS: bootstrap checkpoint CP000001")'
+          fi
 
   promote:
     needs: gate
