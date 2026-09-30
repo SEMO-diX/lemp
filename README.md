@@ -19,7 +19,7 @@ LEMP moves durable context into GitHub and separates:
 - required context from optional context;
 - machine validation from model recollection.
 
-## 5-minute local demo
+## 5-minute local structural demo
 
 ```bash
 python -m pip install -e .
@@ -28,12 +28,12 @@ cd demo-memory
 git init -b main
 git add .
 git commit -m "Initialize synthetic LEMP memory"
-git tag lemp-valid/CP000001
-lemp validate
-lemp sync
+lemp validate --format json
 ```
 
-`lemp sync` resolves the newest valid canonical checkpoint, pins one commit SHA, validates required context, and returns the materialized working context.
+This local demo validates the synthetic repository structure only. **Do not create `lemp-valid/CPxxxxxx` tags manually.** Every canonical checkpoint, including CP000001, requires an annotated Canonical Gate attestation.
+
+For authoritative `lemp sync`, push the generated memory repository to GitHub, allow the included `.github/workflows/lemp-canonical.yml` workflow to promote CP000001, fetch the resulting tag, and then run `lemp sync`. Normal synchronization remotely verifies the exact attested GitHub Actions run/attempt. `--offline-attestation` is diagnostic-only and is not canonical authority.
 
 ## ChatGPT + GitHub
 
@@ -64,7 +64,7 @@ lemp checkpoint [--root <directory>] [--check-only]
 lemp prepare-tag [--root <directory>] [--format text|json]
 ```
 
-The current public preview deliberately starts with the read/sync path. Checkpoint finalization and full remote workflow-attestation verification will be added before the first tagged release.
+Checkpoint finalization and exact remote workflow-attestation verification are implemented. The remaining release work is hardening malformed-input handling, validating the declared Python support floor in CI, and completing the fresh-repository/fresh-conversation E2E.
 
 ## Project documents
 
