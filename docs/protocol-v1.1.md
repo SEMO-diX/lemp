@@ -537,7 +537,7 @@ v1.1 が特に外部検証しやすくするのは Storage verification、Retrie
 
 1. Locate repository.
 2. In normal operation, refresh and prune canonical tags from `origin`, then enumerate `lemp-valid/CPxxxxxx` tags. An explicit no-fetch mode is diagnostic/offline behavior.
-3. Validate tag-name/checkpoint correspondence and select the highest valid checkpoint. For CP000017+, require an annotated Canonical Gate workflow attestation whose checkpoint/commit/repository/workflow/run-attempt metadata match the tag and pinned commit, and remotely verify the exact attested GitHub Actions run attempt in normal canonical resolution; lightweight/local-only attestation is not sufficient canonical authority.
+3. Validate tag-name/checkpoint correspondence and select the highest valid checkpoint. Every canonical checkpoint, beginning with CP000001, MUST carry an annotated Canonical Gate workflow attestation whose checkpoint/commit/repository/workflow/run-attempt metadata match the tag and pinned commit, and normal canonical resolution MUST remotely verify the exact attested GitHub Actions run attempt; lightweight/local-only attestation is not sufficient canonical authority.
 4. If no valid canonical tag exists, return FAIL instead of trusting `main`.
 5. Resolve the selected tag to one commit SHA and pin it for the whole sync.
 6. Read BOOTSTRAP and MANIFEST from that SHA.
@@ -877,7 +877,7 @@ LEMP v1.1 実装は最低限以下を満たす。
 14. active DecisionとContext Contract required-setのcoverageを双方向に検証できる。
 15. summary/semantic routingがdeterministic minimum setを削除できない。
 16. unresolved important memory routingをFAILとして扱える。
-17. CP000017+ canonical tagについてannotated workflow attestationを検証し、lightweight/manual tagだけではcanonicalにしない。
+17. CP000001を含むすべてのcanonical tagについてannotated workflow attestationを検証し、lightweight/manual tagだけではcanonicalにしない。
 18. checkpoint finalizerがmanaged path allowlistを強制し、stage-allを行わない。
 19. checkpoint commit前にdetectable secretを検査してFAILできる。
 20. configured semantic hintsをadditive-only candidateとして扱い、deterministic minimum setを削除しない。
@@ -1123,8 +1123,8 @@ LEMP v1.1 implementation:
 - **MUST** distinguish the candidate branch from validated canonical snapshots.
 - **MUST NOT** treat an unvalidated `main` HEAD as canonical solely because it is newer.
 - **MUST** resolve canonical memory through a validated `lemp-valid/CPxxxxxx` snapshot reference.
-- **MUST** require a valid annotated Canonical Gate workflow attestation for CP000017+ canonical tags; matching tag name and MANIFEST checkpoint alone are insufficient.
-- **MUST** remotely verify the exact attested Canonical Gate run attempt for CP000017+ normal canonical authority and fail closed when verification cannot be established.
+- **MUST** require a valid annotated Canonical Gate workflow attestation for every canonical tag beginning with CP000001; matching tag name and MANIFEST checkpoint alone are insufficient.
+- **MUST** remotely verify the exact attested Canonical Gate run attempt for normal canonical authority at every checkpoint beginning with CP000001 and fail closed when verification cannot be established.
 - **MUST** keep an already successful attested attempt valid across later workflow reruns.
 - **MUST NOT** move the peeled commit of an existing canonical checkpoint tag during recovery.
 - **MAY** replace only the annotated tag object when its prior attested attempt is remotely confirmed completed without success, but the replacement MUST follow a successful new gate and MUST use force-with-lease against the observed prior tag ref.

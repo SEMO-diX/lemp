@@ -25,6 +25,6 @@ PASS / PARTIAL / FAIL
 
 The key separation is that the newest repository state is not automatically canonical memory. Synchronization selects a validated checkpoint, pins one commit SHA, and reads required context from that one snapshot.
 
-The reference runtime resolves canonical tags and validates a pinned snapshot. For CP000017 and later, it requires an annotated Canonical Gate attestation and verifies the exact GitHub Actions run/attempt by default. An explicit `--offline-attestation` mode exists only for local diagnostics.
+The reference runtime resolves canonical tags and validates a pinned snapshot. Every canonical checkpoint, including CP000001, requires an annotated Canonical Gate attestation, and normal resolution verifies the exact GitHub Actions run/attempt. An explicit `--offline-attestation` mode exists only for local diagnostics and is non-authoritative.
 
 The ChatGPT integration is deliberately an integration layer rather than the definition of LEMP itself. Other agents can implement the same protocol against Git or GitHub later.

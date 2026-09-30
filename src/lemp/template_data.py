@@ -4,13 +4,17 @@ All content in this module is fabricated for the public demonstration.
 No private memory records are copied here.
 """
 
-DEFAULT_RUNTIME_SPEC = "git+https://github.com/SEMO-diX/lemp.git@4e1e6e798c4ed209dcd9f6b7ec7fabe2fd467875"
+DEFAULT_RUNTIME_SPEC = "git+https://github.com/SEMO-diX/lemp.git@2eaf4f652397e7aed0be11fe238ff58b7e8337a2"
 RUNTIME_SPEC_PLACEHOLDER = "__LEMP_RUNTIME_SPEC__"
 
 TEMPLATE_FILES: dict[str, str] = {
     "README.md": """# Synthetic LEMP memory
 
 This repository contains fabricated demo memory for exercising LEMP.
+
+Canonical checkpoints are created by the generated LEMP Canonical Gate. Do not
+create `lemp-valid/CPxxxxxx` tags manually: every canonical checkpoint,
+including CP000001, requires an annotated workflow attestation.
 """,
     "BOOTSTRAP.md": """# LEMP Bootstrap
 
@@ -25,7 +29,7 @@ Synchronization semantics:
 - optional-context absence may produce `PARTIAL`; otherwise the result is `PASS`;
 - durable context is used only after the integrity result is established.
 
-For CP000017 and later, production conformance also includes annotated canonical attestation and authoritative workflow-run verification. The public preview CLI currently validates the local tag object only.
+Every canonical checkpoint, including CP000001, requires an annotated Canonical Gate attestation. Normal synchronization verifies the exact attested GitHub Actions run/attempt remotely and fails closed if that verification cannot be established. `--offline-attestation` is diagnostic-only and non-authoritative.
 """,
     "MANIFEST.yaml": """protocol: LEMP
 protocol_version: "1.1"
@@ -87,7 +91,7 @@ canonical:
   pin_snapshot_sha: true
   fallback_to_last_validated: true
   promotion_workflow: .github/workflows/lemp-canonical.yml
-  attestation_required_from: CP000017
+  attestation_required_from: CP000001
   attestation_version: 1
   attestation_workflow: .github/workflows/lemp-canonical.yml
   remote_workflow_verification_required: true
