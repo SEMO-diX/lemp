@@ -60,3 +60,18 @@ def test_runtime_source_can_be_overridden(tmp_path: Path) -> None:
         Loader=yaml.BaseLoader,
     )
     assert workflow["env"]["LEMP_RUNTIME_SPEC"] == custom
+
+
+def test_generated_memory_requires_attestation_from_cp1(tmp_path: Path) -> None:
+    root = tmp_path / "memory"
+    init_memory(root)
+
+    manifest = yaml.safe_load(
+        (root / "MANIFEST.yaml").read_text(encoding="utf-8")
+    )
+    assert manifest["canonical"]["attestation_required_from"] == "CP000001"
+
+    bootstrap = (root / "BOOTSTRAP.md").read_text(encoding="utf-8")
+    assert "including CP000001" in bootstrap
+    assert "CP000017" not in bootstrap
+    assert "local tag object only" not in bootstrap
