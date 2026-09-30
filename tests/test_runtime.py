@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from lemp.promotion import prepare_tag
 from lemp.runtime import checkpoint, init_memory, status, sync, validate
 
 
@@ -20,7 +21,16 @@ def fixture(tmp_path: Path) -> Path:
     git(root, "config", "user.email", "lemp@example.invalid")
     git(root, "add", ".")
     git(root, "commit", "-m", "synthetic canonical")
-    git(root, "tag", "lemp-valid/CP000001")
+    sha = git(root, "rev-parse", "HEAD").stdout.strip()
+    prepare_tag(
+        root,
+        checkpoint="CP000001",
+        commit_sha=sha,
+        repository="example/memory",
+        run_id=1,
+        run_attempt=1,
+        event="push",
+    )
     return root
 
 
@@ -32,7 +42,7 @@ def test_template_validates(tmp_path: Path) -> None:
 
 def test_sync_materializes_canonical_context(tmp_path: Path) -> None:
     root = fixture(tmp_path)
-    payload = sync(root, fetch_tags=False)
+    payload = sync(root, fetch_tags=False, offline_attestation=True)
     assert payload["integrity"] == "PASS"
     assert payload["canonical"]["checkpoint"] == "CP000001"
     paths = {item["path"] for item in payload["working_context"]}
@@ -47,7 +57,7 @@ def test_unvalidated_head_does_not_replace_canonical(tmp_path: Path) -> None:
     state.write_text(state.read_text(encoding="utf-8") + "\nCandidate-only note.\n", encoding="utf-8")
     git(root, "add", "STATE.md")
     git(root, "commit", "-m", "unvalidated candidate")
-    s = status(root, fetch_tags=False)
+    s = status(root, fetch_tags=False, offline_attestation=True)
     assert s["candidate"]["relation"] == "NEWER_UNVALIDATED"
     payload = sync(root, fetch_tags=False)
     canonical_state = next(x["content"] for x in payload["working_context"] if x["path"] == "STATE.md")
@@ -121,7 +131,7 @@ Synthetic checkpoint progression test.
         encoding="utf-8",
     )
 
-    result = checkpoint(root, fetch_tags=False)
+    result = checkpoint(root, fetch_tags=False, offline_attestation=True)
     assert result["result"] == "CANDIDATE_COMMITTED"
     assert result["candidate_checkpoint"] == "CP000002"
     assert result["promotion"] == "PENDING_CANONICAL_GATE"
