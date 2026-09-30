@@ -64,7 +64,7 @@ lemp checkpoint [--root <directory>] [--check-only]
 lemp prepare-tag [--root <directory>] [--format text|json]
 ```
 
-Checkpoint finalization and exact remote workflow-attestation verification are implemented. The remaining release work is hardening malformed-input handling, validating the declared Python support floor in CI, and completing the fresh-repository/fresh-conversation E2E.
+Checkpoint finalization and exact remote workflow-attestation verification are implemented. Malformed repository inputs now fail closed as structured validation errors, and the declared Python floor is exercised on Python 3.11 and 3.12 in CI. The remaining release proof is the fresh-repository/fresh-conversation ChatGPT + GitHub E2E.
 
 ## Project documents
 
