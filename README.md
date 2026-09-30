@@ -6,7 +6,7 @@ LEMP (Long-term External Memory Protocol) treats a GitHub repository as durable 
 
 The reference integration is **ChatGPT + GitHub**: ChatGPT uses its GitHub integration as the memory I/O path, while LEMP defines how durable context is structured, validated, checkpointed, and recovered across conversations.
 
-> Status: public MVP reference flow proven end to end. The protocol baseline is LEMP v1.1. The private development memory and its Git history are intentionally not part of this repository.
+> Status: v0.1.0 public MVP release. The reference flow has been proven end to end. The protocol baseline is LEMP v1.1. The private development memory and its Git history are intentionally not part of this repository.
 
 ## Why
 
@@ -49,9 +49,19 @@ It does **not** contain the author's real sessions, events, archives, current st
 
 ## Implementation status
 
-The public preview currently has a working Python package, synthetic template generation, snapshot-pinned `sync`, candidate/canonical `status`, candidate `checkpoint` finalization, Context Contract and Applicability schema validation, Decision-to-Contract coverage checks, provenance and archive coverage validation, annotated canonical-tag promotion, exact GitHub Actions run/attempt attestation verification, a generated Canonical Gate workflow with pinned Gitleaks scanning, and GitHub Actions CI.
+v0.1.0 includes a working Python package, synthetic template generation, snapshot-pinned `sync`, candidate/canonical `status`, candidate `checkpoint` finalization, Context Contract and Applicability schema validation, Decision-to-Contract coverage checks, provenance and archive coverage validation, annotated canonical-tag promotion, exact GitHub Actions run/attempt attestation verification, a generated Canonical Gate workflow with pinned Gitleaks scanning, and GitHub Actions CI.
 
-The generated Canonical Gate also performs previous-generation compatibility checks and installs the public runtime from an immutable verified commit SHA by default. `lemp init --runtime-spec` can point forks or alternate distributions at another runtime source. A fresh private GitHub repository plus fresh ChatGPT conversations have now completed the intended MVP E2E proof, including remote attestation and unvalidated-candidate isolation. The next release step is the first tagged software release.
+The generated Canonical Gate also performs previous-generation compatibility checks and installs the public runtime from an immutable verified commit SHA by default. `lemp init --runtime-spec` can point forks or alternate distributions at another runtime source. A fresh private GitHub repository plus fresh ChatGPT conversations completed the intended MVP E2E proof, including remote attestation and unvalidated-candidate isolation. For v0.1.0, the generated runtime remains pinned to the exact E2E-tested commit rather than to the human-facing release tag.
+
+## Install v0.1.0
+
+After the `v0.1.0` tag is published:
+
+```bash
+python -m pip install "git+https://github.com/SEMO-diX/lemp.git@v0.1.0"
+```
+
+PyPI publishing is not part of the initial v0.1.0 release gate.
 
 ## Current commands
 
@@ -73,6 +83,8 @@ Checkpoint finalization and exact remote workflow-attestation verification are i
 - [Architecture](docs/architecture.md)
 - [ChatGPT + GitHub integration and permissions](docs/chatgpt-github.md)
 - [Fresh repository / fresh chat E2E report](docs/E2E-REPORT.md)
+- [v0.1.0 release notes and gate](docs/release-v0.1.0.md)
+- [Changelog](CHANGELOG.md)
 - [Protocol v1.1](docs/protocol-v1.1.md)
 - [Security](SECURITY.md)
 
