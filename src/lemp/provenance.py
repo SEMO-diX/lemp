@@ -191,8 +191,14 @@ def validate_provenance(root: Path, manifest: dict[str, Any]) -> list[str]:
         errors.append(str(exc))
         return errors
 
-    for entry in invariant_index.get("invariants", []) or []:
+    invariant_entries = invariant_index.get("invariants")
+    if not isinstance(invariant_entries, list):
+        errors.append("invariant index invariants must be a list")
+        invariant_entries = []
+
+    for entry in invariant_entries:
         if not isinstance(entry, dict):
+            errors.append(f"invalid invariant index entry: {entry!r}")
             continue
         rel = entry.get("path")
         if not isinstance(rel, str):
