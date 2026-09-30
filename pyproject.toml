@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lemp"
-version = "0.0.0.dev0"
+version = "0.1.0"
 description = "GitHub-backed persistent memory protocol and reference runtime for LLMs"
 readme = "README.md"
 requires-python = ">=3.11"
