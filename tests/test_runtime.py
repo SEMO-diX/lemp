@@ -59,7 +59,7 @@ def test_unvalidated_head_does_not_replace_canonical(tmp_path: Path) -> None:
     git(root, "commit", "-m", "unvalidated candidate")
     s = status(root, fetch_tags=False, offline_attestation=True)
     assert s["candidate"]["relation"] == "NEWER_UNVALIDATED"
-    payload = sync(root, fetch_tags=False)
+    payload = sync(root, fetch_tags=False, offline_attestation=True)
     canonical_state = next(x["content"] for x in payload["working_context"] if x["path"] == "STATE.md")
     assert "Candidate-only note" not in canonical_state
 
