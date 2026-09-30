@@ -1,10 +1,10 @@
 # Implementation status
 
-Updated: 2026-09-30
+Updated: 2026-10-01
 
 ## Release-hardening state
 
-The public implementation is in release-candidate hardening. Public CI covers Python 3.11 and 3.12, and both versions are required to remain green for release changes.
+The public implementation has completed the fresh-repository / fresh-conversation MVP proof. Public CI covers Python 3.11 and 3.12, and both versions are required to remain green for release changes.
 
 ## Implemented
 
@@ -34,17 +34,20 @@ The public implementation is in release-candidate hardening. Public CI covers Py
 - public CI coverage for the declared Python floor: Python 3.11 and 3.12
 - independent disposable Termux validation previously succeeded on Python 3.14.6
 
-## Remaining release proof
+## External E2E proof
 
-The major remaining proof is an external end-to-end run using a fresh GitHub memory repository and a fresh ChatGPT conversation:
+The external fresh-repository / fresh-conversation proof is complete.
 
-1. initialize a new memory repository with `lemp init`;
-2. push it to GitHub and allow its Canonical Gate to establish attested CP000001;
-3. verify authoritative `lemp sync` and `lemp status` against the exact remote workflow run/attempt;
-4. connect that repository to ChatGPT through GitHub with least-privilege permissions;
-5. perform `memory sync`;
-6. start a fresh conversation and repeat `memory sync`;
-7. verify that the synthetic durable decision and state are recovered from the validated canonical snapshot;
-8. create a newer unvalidated candidate and verify that it does not contaminate recovered canonical memory.
+Verified outcomes include:
 
-After that proof, the preview runtime commit pin can be replaced by the first tagged software release.
+- attested CP000001 promotion in a fresh private GitHub memory repository;
+- exact remote workflow run/attempt verification;
+- authoritative `lemp sync` and `lemp status` with `PASS`;
+- fresh ChatGPT recovery of synthetic durable state and latest decision without expected answers in the prompt;
+- detection of a newer unvalidated `main` as `NEWER_UNVALIDATED`;
+- candidate-only content excluded from canonical working context;
+- failed Canonical Gate promotion when the unvalidated candidate did not advance the checkpoint correctly.
+
+See [E2E-REPORT.md](E2E-REPORT.md) for concrete evidence.
+
+The next release step is the first tagged software release.

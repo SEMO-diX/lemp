@@ -4,7 +4,7 @@ All content in this module is fabricated for the public demonstration.
 No private memory records are copied here.
 """
 
-DEFAULT_RUNTIME_SPEC = "git+https://github.com/SEMO-diX/lemp.git@2eaf4f652397e7aed0be11fe238ff58b7e8337a2"
+DEFAULT_RUNTIME_SPEC = "git+https://github.com/SEMO-diX/lemp.git@738d35931fc6f11fa9eeee68809253233f715fe8"
 RUNTIME_SPEC_PLACEHOLDER = "__LEMP_RUNTIME_SPEC__"
 
 TEMPLATE_FILES: dict[str, str] = {
