@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## Release-hardening state
+## Release state
 
-The public implementation has completed the fresh-repository / fresh-conversation MVP proof. Public CI covers Python 3.11 and 3.12, and both versions are required to remain green for release changes.
+The public implementation has completed the fresh-repository / fresh-conversation MVP proof and is being frozen as v0.1.0. Public CI covers Python 3.11 and 3.12, and the v0.1.0 gate additionally builds wheel/sdist artifacts and clean-installs the wheel before running CLI initialization/validation smoke checks.
 
 ## Implemented
 
@@ -50,4 +50,15 @@ Verified outcomes include:
 
 See [E2E-REPORT.md](E2E-REPORT.md) for concrete evidence.
 
-The next release step is the first tagged software release.
+The remaining publication step is to merge the v0.1.0 release commit, create the immutable `v0.1.0` tag on that exact green commit, publish the GitHub Release, and smoke-test installation from the tag.
+
+
+## v0.1.0 release boundary
+
+v0.1.0 is a release/packaging freeze of the E2E-proven implementation, not a protocol-semantics expansion.
+
+The generated Canonical Gate default runtime remains pinned to the exact E2E-tested commit `738d35931fc6f11fa9eeee68809253233f715fe8`. The human-facing `v0.1.0` software tag does not replace that authority in this release.
+
+PyPI publishing is intentionally deferred. The initial supported release path is the immutable GitHub source tag.
+
+See [release-v0.1.0.md](release-v0.1.0.md).
