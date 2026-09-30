@@ -87,6 +87,33 @@ class Validation:
         }
 
 
+def _list_value(value: Any, field: str, errors: list[str]) -> list[Any]:
+    if not isinstance(value, list):
+        errors.append(f"{field} must be a list")
+        return []
+    return value
+
+
+def _extend_validation_layer(
+    errors: list[str],
+    label: str,
+    validator: Any,
+) -> None:
+    try:
+        layer_errors = validator()
+    except Exception as exc:
+        errors.append(
+            f"{label} validation failed: {type(exc).__name__}: {exc}"
+        )
+        return
+    if not isinstance(layer_errors, list) or any(
+        not isinstance(item, str) for item in layer_errors
+    ):
+        errors.append(f"{label} validator returned an invalid error list")
+        return
+    errors.extend(layer_errors)
+
+
 def validate(root: Path) -> Validation:
     root = root.resolve()
     errors: list[str] = []
@@ -101,62 +128,96 @@ def validate(root: Path) -> Validation:
 
     checkpoint = manifest.get("checkpoint")
     state_version = manifest.get("state_version")
+    checkpoint_valid = (
+        isinstance(checkpoint, str) and CHECKPOINT_RE.fullmatch(checkpoint) is not None
+    )
+    state_version_valid = (
+        isinstance(state_version, int)
+        and not isinstance(state_version, bool)
+        and state_version >= 1
+    )
+
     if manifest.get("protocol") != "LEMP":
         errors.append("MANIFEST.protocol must be LEMP")
     if str(manifest.get("protocol_version")) != "1.1":
         errors.append("MANIFEST.protocol_version must be 1.1")
-    if not isinstance(checkpoint, str) or CHECKPOINT_RE.fullmatch(checkpoint) is None:
+    if not checkpoint_valid:
         errors.append("MANIFEST.checkpoint must match CPxxxxxx")
-    if not isinstance(state_version, int):
-        errors.append("MANIFEST.state_version must be an integer")
+    if not state_version_valid:
+        errors.append("MANIFEST.state_version must be a positive integer")
 
     state_path = root / "STATE.md"
     if not state_path.is_file():
         errors.append("missing STATE.md")
     else:
-        text = state_path.read_text(encoding="utf-8")
-        state_cp = STATE_CP_RE.search(text)
-        state_ver = STATE_VER_RE.search(text)
-        if checkpoint and (state_cp is None or state_cp.group(1) != checkpoint):
-            errors.append("STATE checkpoint does not match MANIFEST")
-        if isinstance(state_version, int) and (
-            state_ver is None or int(state_ver.group(1)) != state_version
-        ):
-            errors.append("STATE State-Version does not match MANIFEST")
-
-    raw_required = manifest.get("required_context") or []
-    if not isinstance(raw_required, list) or any(not isinstance(x, str) for x in raw_required):
-        errors.append("MANIFEST.required_context must be a list of paths")
-    else:
-        required_context = list(dict.fromkeys(raw_required))
-        for rel in required_context:
-            try:
-                if not _safe(root, rel).is_file():
-                    errors.append(f"missing required context: {rel}")
-            except LEMPError as exc:
-                errors.append(str(exc))
-
-    for rel in manifest.get("critical_memories") or []:
-        if isinstance(rel, str):
-            try:
-                if not _safe(root, rel).is_file():
-                    errors.append(f"missing critical memory: {rel}")
-            except LEMPError as exc:
-                errors.append(str(exc))
+        try:
+            text = state_path.read_text(encoding="utf-8")
+        except Exception as exc:
+            errors.append(f"cannot read STATE.md: {type(exc).__name__}: {exc}")
         else:
-            errors.append(f"invalid critical memory path: {rel!r}")
+            state_cp = STATE_CP_RE.search(text)
+            state_ver = STATE_VER_RE.search(text)
+            if checkpoint_valid and (
+                state_cp is None or state_cp.group(1) != checkpoint
+            ):
+                errors.append("STATE checkpoint does not match MANIFEST")
+            if state_version_valid and (
+                state_ver is None or int(state_ver.group(1)) != state_version
+            ):
+                errors.append("STATE State-Version does not match MANIFEST")
 
-    control = manifest.get("control_plane") or {}
+    raw_required = manifest.get("required_context")
+    if isinstance(raw_required, list):
+        if any(not isinstance(item, str) for item in raw_required):
+            errors.append("MANIFEST.required_context must contain only paths")
+        else:
+            required_context = list(dict.fromkeys(raw_required))
+            for rel in required_context:
+                try:
+                    if not _safe(root, rel).is_file():
+                        errors.append(f"missing required context: {rel}")
+                except LEMPError as exc:
+                    errors.append(str(exc))
+    else:
+        errors.append("MANIFEST.required_context must be a list of paths")
+
+    critical_memories = _list_value(
+        manifest.get("critical_memories"),
+        "MANIFEST.critical_memories",
+        errors,
+    )
+    for rel in critical_memories:
+        if not isinstance(rel, str):
+            errors.append(f"invalid critical memory path: {rel!r}")
+            continue
+        try:
+            if not _safe(root, rel).is_file():
+                errors.append(f"missing critical memory: {rel}")
+        except LEMPError as exc:
+            errors.append(str(exc))
+
+    control = manifest.get("control_plane")
     if not isinstance(control, dict):
         errors.append("MANIFEST.control_plane must be a mapping")
         control = {}
 
     contract_paths: list[str] = []
     global_contract = control.get("global_contract", "contracts/GLOBAL.yaml")
-    if isinstance(global_contract, str):
+    if not isinstance(global_contract, str):
+        errors.append("MANIFEST.control_plane.global_contract must be a path")
+    else:
         contract_paths.append(global_contract)
-    for rel in control.get("active_contracts") or []:
-        if isinstance(rel, str) and rel not in contract_paths:
+
+    active_contracts = _list_value(
+        control.get("active_contracts"),
+        "MANIFEST.control_plane.active_contracts",
+        errors,
+    )
+    for rel in active_contracts:
+        if not isinstance(rel, str):
+            errors.append(f"invalid active contract path: {rel!r}")
+            continue
+        if rel not in contract_paths:
             contract_paths.append(rel)
 
     required_invariants: list[str] = []
@@ -170,38 +231,63 @@ def validate(root: Path) -> Validation:
         except LEMPError as exc:
             errors.append(str(exc))
             continue
+
         if contract.get("protocol") != manifest.get("protocol"):
             errors.append(f"{rel}: protocol mismatch")
-        if str(contract.get("protocol_version")) != str(manifest.get("protocol_version")):
+        if str(contract.get("protocol_version")) != str(
+            manifest.get("protocol_version")
+        ):
             errors.append(f"{rel}: protocol_version mismatch")
         if contract.get("status") != "active":
             errors.append(f"{rel}: contract is not active")
-        for req in contract.get("required") or []:
-            if isinstance(req, str):
-                if req not in required_context:
-                    required_context.append(req)
-                try:
-                    if not _safe(root, req).is_file():
-                        errors.append(f"{rel}: missing required path: {req}")
-                except LEMPError as exc:
-                    errors.append(str(exc))
-        for opt in contract.get("optional") or []:
-            if isinstance(opt, str):
-                try:
-                    if not _safe(root, opt).is_file():
-                        missing_optional.append(opt)
-                except LEMPError as exc:
-                    errors.append(str(exc))
-        for iid in contract.get("required_invariants") or []:
-            if isinstance(iid, str) and iid not in required_invariants:
+
+        for req in _list_value(contract.get("required"), f"{rel}.required", errors):
+            if not isinstance(req, str):
+                errors.append(f"{rel}: invalid required path: {req!r}")
+                continue
+            if req not in required_context:
+                required_context.append(req)
+            try:
+                if not _safe(root, req).is_file():
+                    errors.append(f"{rel}: missing required path: {req}")
+            except LEMPError as exc:
+                errors.append(str(exc))
+
+        optional = contract.get("optional", [])
+        for opt in _list_value(optional, f"{rel}.optional", errors):
+            if not isinstance(opt, str):
+                errors.append(f"{rel}: invalid optional path: {opt!r}")
+                continue
+            try:
+                if not _safe(root, opt).is_file():
+                    missing_optional.append(opt)
+            except LEMPError as exc:
+                errors.append(str(exc))
+
+        for iid in _list_value(
+            contract.get("required_invariants"),
+            f"{rel}.required_invariants",
+            errors,
+        ):
+            if not isinstance(iid, str):
+                errors.append(f"{rel}: invalid required invariant id: {iid!r}")
+                continue
+            if iid not in required_invariants:
                 required_invariants.append(iid)
 
     invariant_index_path = control.get("invariant_index", "invariants/INDEX.yaml")
     known_invariants: dict[str, tuple[str, dict[str, Any]]] = {}
-    if isinstance(invariant_index_path, str):
+    if not isinstance(invariant_index_path, str):
+        errors.append("MANIFEST.control_plane.invariant_index must be a path")
+    else:
         try:
             index = _yaml(_safe(root, invariant_index_path))
-            for item in index.get("invariants") or []:
+            invariant_entries = _list_value(
+                index.get("invariants"),
+                f"{invariant_index_path}.invariants",
+                errors,
+            )
+            for item in invariant_entries:
                 if not isinstance(item, dict):
                     errors.append("invalid invariant index entry")
                     continue
@@ -233,58 +319,96 @@ def validate(root: Path) -> Validation:
             errors.append(f"required invariant is not critical: {iid}")
 
     current_path = control.get("current_state", "state/CURRENT.yaml")
-    if isinstance(current_path, str):
+    if not isinstance(current_path, str):
+        errors.append("MANIFEST.control_plane.current_state must be a path")
+    else:
         try:
             current = _yaml(_safe(root, current_path))
-            if current.get("checkpoint") != checkpoint:
+            if checkpoint_valid and current.get("checkpoint") != checkpoint:
                 errors.append("current state checkpoint does not match MANIFEST")
         except LEMPError as exc:
             errors.append(str(exc))
 
     conflict_path = control.get("conflict_index", "conflicts/INDEX.yaml")
-    if isinstance(conflict_path, str):
+    if not isinstance(conflict_path, str):
+        errors.append("MANIFEST.control_plane.conflict_index must be a path")
+    else:
         try:
             conflicts = _yaml(_safe(root, conflict_path))
-            for item in conflicts.get("conflicts") or []:
+            conflict_entries = _list_value(
+                conflicts.get("conflicts"),
+                f"{conflict_path}.conflicts",
+                errors,
+            )
+            for item in conflict_entries:
+                if not isinstance(item, dict):
+                    errors.append(f"invalid conflict index entry: {item!r}")
+                    continue
                 if (
-                    isinstance(item, dict)
-                    and item.get("status") == "unresolved"
+                    item.get("status") == "unresolved"
                     and item.get("severity") == "critical"
                 ):
-                    errors.append(f"unresolved critical conflict: {item.get('id')}")
+                    errors.append(
+                        f"unresolved critical conflict: {item.get('id')}"
+                    )
         except LEMPError as exc:
             errors.append(str(exc))
 
-    archive_policy = manifest.get("archive_policy") or {}
-    if isinstance(archive_policy, dict) and archive_policy.get("checkpointed_session_archive_required"):
+    archive_policy = manifest.get("archive_policy")
+    if not isinstance(archive_policy, dict):
+        errors.append("MANIFEST.archive_policy must be a mapping")
+    elif archive_policy.get("checkpointed_session_archive_required"):
         latest_session = manifest.get("latest_session")
         index_rel = archive_policy.get("index", "archive/INDEX.yaml")
+        if not isinstance(latest_session, str):
+            errors.append("MANIFEST.latest_session must be a session id")
+        if not isinstance(index_rel, str):
+            errors.append("MANIFEST.archive_policy.index must be a path")
         if isinstance(latest_session, str) and isinstance(index_rel, str):
             try:
                 archive_index = _yaml(_safe(root, index_rel))
-                records = archive_index.get("records") or []
-                if not any(isinstance(x, dict) and x.get("session") == latest_session for x in records):
-                    errors.append("latest session has no source-recovery archive record")
+                records = _list_value(
+                    archive_index.get("records"),
+                    f"{index_rel}.records",
+                    errors,
+                )
+                if not any(
+                    isinstance(item, dict)
+                    and item.get("session") == latest_session
+                    for item in records
+                ):
+                    errors.append(
+                        "latest session has no source-recovery archive record"
+                    )
             except LEMPError as exc:
                 errors.append(str(exc))
 
-    errors.extend(validate_control_plane(root, manifest))
-
-    errors.extend(validate_provenance(root, manifest))
-
-    errors.extend(validate_archive(root, manifest))
+    _extend_validation_layer(
+        errors,
+        "control-plane",
+        lambda: validate_control_plane(root, manifest),
+    )
+    _extend_validation_layer(
+        errors,
+        "provenance",
+        lambda: validate_provenance(root, manifest),
+    )
+    _extend_validation_layer(
+        errors,
+        "archive",
+        lambda: validate_archive(root, manifest),
+    )
 
     integrity = "FAIL" if errors else ("PARTIAL" if missing_optional else "PASS")
     return Validation(
         integrity,
-        checkpoint if isinstance(checkpoint, str) else None,
-        state_version if isinstance(state_version, int) else None,
+        checkpoint if checkpoint_valid else None,
+        state_version if state_version_valid else None,
         sorted(set(missing_optional)),
         errors,
         required_context,
         sorted(set(required_invariant_paths)),
     )
-
 
 def init_memory(
     destination: Path,
