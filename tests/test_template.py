@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -75,3 +76,29 @@ def test_generated_memory_requires_attestation_from_cp1(tmp_path: Path) -> None:
     assert "including CP000001" in bootstrap
     assert "CP000017" not in bootstrap
     assert "local tag object only" not in bootstrap
+
+
+def test_generated_canonical_workflow_shell_is_syntax_valid(tmp_path: Path) -> None:
+    root = tmp_path / "memory"
+    init_memory(root)
+
+    workflow = yaml.load(
+        (root / ".github" / "workflows" / "lemp-canonical.yml").read_text(
+            encoding="utf-8"
+        ),
+        Loader=yaml.BaseLoader,
+    )
+    steps = workflow["jobs"]["gate"]["steps"]
+    sequence = next(
+        step for step in steps if step.get("name") == "Validate checkpoint sequence"
+    )
+    script = sequence["run"]
+
+    result = subprocess.run(
+        ["bash", "-n"],
+        input=script,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
