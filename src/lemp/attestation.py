@@ -14,7 +14,8 @@ import yaml
 ACTIONS_BOT_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com"
 PROMOTION_WORKFLOW = ".github/workflows/lemp-canonical.yml"
 ATTESTATION_VERSION = 1
-ATTESTATION_REQUIRED_FROM = 17
+ATTESTATION_REQUIRED_FROM = 1
+CHECKPOINT_RE = re.compile(r"^CP\d{6}$")
 REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 
 
@@ -180,10 +181,14 @@ def verify_attested_tag(
     sha: str,
     *,
     verify_remote: bool = True,
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
+    if not isinstance(checkpoint, str) or CHECKPOINT_RE.fullmatch(checkpoint) is None:
+        raise AttestationError(f"invalid canonical checkpoint: {checkpoint!r}")
     number = int(checkpoint[2:])
     if number < ATTESTATION_REQUIRED_FROM:
-        return None
+        raise AttestationError(
+            f"canonical attestation is required from CP{ATTESTATION_REQUIRED_FROM:06d}"
+        )
 
     fields, attestation = _tag_object(root, tag)
     if fields.get("object") != sha or fields.get("type") != "commit":
