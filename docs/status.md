@@ -4,7 +4,7 @@ Updated: 2026-09-30
 
 ## Release-hardening state
 
-The public implementation is in release-candidate hardening. Current code is expected to pass the public CI matrix on Python 3.11 and 3.12 before merge.
+The public implementation is in release-candidate hardening. Public CI covers Python 3.11 and 3.12, and both versions are required to remain green for release changes.
 
 ## Implemented
 
