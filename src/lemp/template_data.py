@@ -11,6 +11,10 @@ TEMPLATE_FILES: dict[str, str] = {
     "README.md": """# Synthetic LEMP memory
 
 This repository contains fabricated demo memory for exercising LEMP.
+
+Canonical checkpoints are created by the generated LEMP Canonical Gate. Do not
+create `lemp-valid/CPxxxxxx` tags manually: every canonical checkpoint,
+including CP000001, requires an annotated workflow attestation.
 """,
     "BOOTSTRAP.md": """# LEMP Bootstrap
 
@@ -25,7 +29,7 @@ Synchronization semantics:
 - optional-context absence may produce `PARTIAL`; otherwise the result is `PASS`;
 - durable context is used only after the integrity result is established.
 
-For CP000017 and later, production conformance also includes annotated canonical attestation and authoritative workflow-run verification. The public preview CLI currently validates the local tag object only.
+Every canonical checkpoint, including CP000001, requires an annotated Canonical Gate attestation. Normal synchronization verifies the exact attested GitHub Actions run/attempt remotely and fails closed if that verification cannot be established. `--offline-attestation` is diagnostic-only and non-authoritative.
 """,
     "MANIFEST.yaml": """protocol: LEMP
 protocol_version: "1.1"
@@ -87,7 +91,7 @@ canonical:
   pin_snapshot_sha: true
   fallback_to_last_validated: true
   promotion_workflow: .github/workflows/lemp-canonical.yml
-  attestation_required_from: CP000017
+  attestation_required_from: CP000001
   attestation_version: 1
   attestation_workflow: .github/workflows/lemp-canonical.yml
   remote_workflow_verification_required: true
