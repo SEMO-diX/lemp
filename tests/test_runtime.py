@@ -3,10 +3,11 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
 import yaml
 
 from lemp.promotion import prepare_tag
-from lemp.runtime import checkpoint, init_memory, status, sync, validate
+from lemp.runtime import LEMPError, checkpoint, init_memory, status, sync, validate
 
 
 def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -136,3 +137,17 @@ Synthetic checkpoint progression test.
     assert result["candidate_checkpoint"] == "CP000002"
     assert result["promotion"] == "PENDING_CANONICAL_GATE"
     assert result["previous_generation"]["result"] == "PASS"
+
+
+def test_lightweight_cp1_tag_is_not_canonical(tmp_path: Path) -> None:
+    root = tmp_path / "memory"
+    init_memory(root)
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.name", "LEMP Test")
+    git(root, "config", "user.email", "lemp@example.invalid")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "synthetic cp1")
+    git(root, "tag", "lemp-valid/CP000001")
+
+    with pytest.raises(LEMPError, match="no valid canonical tag"):
+        sync(root, fetch_tags=False, offline_attestation=True)
